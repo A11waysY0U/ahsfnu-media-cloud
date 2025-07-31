@@ -192,3 +192,28 @@ func UpdateMaterial(c *gin.Context) {
 
 	successResponse(c, material)
 }
+
+func GetMaterialDetails(c *gin.Context) {
+	service := GetMaterialService()
+
+	materialID, valid := validateMaterialID(c)
+	if !valid {
+		return
+	}
+
+	material, found := getMaterialByID(service, materialID)
+	if !found {
+		errorResponse(c, http.StatusNotFound, "素材不存在")
+		return
+	}
+
+	// 检查权限
+	if !checkMaterialPermission(c, material) {
+		return
+	}
+
+	// 添加文件URL
+	material.FilePath = service.uploadService.GetFileURL(material)
+
+	successResponse(c, material)
+}
