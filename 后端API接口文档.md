@@ -8,8 +8,10 @@
 
 | 方法 | 路径                | 说明         | 参数/Body         |
 |------|---------------------|--------------|-------------------|
-| POST | /api/v1/auth/login  | 用户登录     | username, password|
-| POST | /api/v1/auth/register | 用户注册   | username, email, password |
+| GET  | /api/v1/auth/captcha | 获取验证码   | 无                |
+| POST | /api/v1/auth/verify-captcha | 验证验证码 | captcha_id, captcha_code |
+| POST | /api/v1/auth/login  | 用户登录     | username, password, auth_token |
+| POST | /api/v1/auth/register | 用户注册   | username, email, password, invite_code, auth_token |
 | GET  | /api/v1/profile     | 获取当前用户 | 无                |
 | GET  | /api/v1/users       | 获取用户列表 | 无                |
 
@@ -56,6 +58,55 @@
 | DELETE|/api/v1/workflows/:id                        | 删除工作流     | id                |
 | POST | /api/v1/workflows/:id/members                | 添加成员       | user_id           |
 | DELETE|/api/v1/workflows/:id/members/:userId        | 移除成员       | userId            |
+
+---
+
+---
+
+## 验证码功能说明
+
+### 使用流程
+
+1. **获取验证码**
+   - 调用 `GET /api/v1/auth/captcha` 获取验证码图片和认证token
+   - 返回：`captcha_id`（验证码ID）、`captcha_b64`（Base64编码的图片）、`auth_token`（认证token）
+
+2. **验证验证码**
+   - 用户输入验证码后，调用 `POST /api/v1/auth/verify-captcha`
+   - 参数：`captcha_id`（验证码ID）、`captcha_code`（用户输入的验证码）
+   - 返回：新的 `auth_token`（认证token）
+
+3. **登录/注册**
+   - 使用获得的 `auth_token` 进行登录或注册
+   - 登录和注册请求都需要包含 `auth_token` 字段
+
+### 安全特性
+
+- 验证码有效期为5分钟
+- 认证token有效期为10分钟
+- 验证码验证成功后会自动删除，防止重复使用
+- 认证token验证成功后可以用于登录或注册
+
+### 示例请求
+
+**获取验证码：**
+```bash
+curl -X GET http://localhost:8080/api/v1/auth/captcha
+```
+
+**验证验证码：**
+```bash
+curl -X POST http://localhost:8080/api/v1/auth/verify-captcha \
+  -H "Content-Type: application/json" \
+  -d '{"captcha_id": "xxx", "captcha_code": "1234"}'
+```
+
+**登录（需要认证token）：**
+```bash
+curl -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "test", "password": "123456", "auth_token": "xxx"}'
+```
 
 ---
 

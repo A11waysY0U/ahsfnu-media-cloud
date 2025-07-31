@@ -24,6 +24,8 @@ func SetupRoutes(r *gin.Engine) {
 		// 认证相关路由
 		authGroup := v1.Group("/auth")
 		{
+			authGroup.GET("/captcha", auth.GetCaptcha)
+			authGroup.POST("/verify-captcha", auth.VerifyCaptcha)
 			authGroup.POST("/login", auth.Login)
 			authGroup.POST("/register", auth.Register)
 		}

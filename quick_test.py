@@ -80,7 +80,7 @@ def test_api():
             result = response.json()
             material_id = result.get('data', {}).get('id')
             print(f"✅ 上传成功，素材ID: {material_id}")
-            
+            5
             # 4. 测试更新素材
             print("\n✏️ 测试更新素材...")
             update_data = {

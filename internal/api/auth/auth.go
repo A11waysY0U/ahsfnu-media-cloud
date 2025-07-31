@@ -13,8 +13,9 @@ import (
 )
 
 type LoginRequest struct {
-	Username string `json:"username" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	Username  string `json:"username" binding:"required"`
+	Password  string `json:"password" binding:"required"`
+	AuthToken string `json:"auth_token" binding:"required"`
 }
 
 type RegisterRequest struct {
@@ -22,6 +23,7 @@ type RegisterRequest struct {
 	Email      string `json:"email" binding:"required,email"`
 	Password   string `json:"password" binding:"required,min=6"`
 	InviteCode string `json:"invite_code" binding:"required"`
+	AuthToken  string `json:"auth_token" binding:"required"`
 }
 
 type AuthResponse struct {
@@ -34,6 +36,12 @@ func Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// 验证认证token
+	if !services.VerifyAuthToken(req.AuthToken) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "认证token无效或已过期"})
 		return
 	}
 
@@ -76,6 +84,12 @@ func Register(c *gin.Context) {
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// 验证认证token
+	if !services.VerifyAuthToken(req.AuthToken) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "认证token无效或已过期"})
 		return
 	}
 
