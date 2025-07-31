@@ -2,7 +2,9 @@ package api
 
 import (
 	"ahsfnu-media-cloud/internal/api/auth"
+	"ahsfnu-media-cloud/internal/api/materials"
 	"ahsfnu-media-cloud/internal/config"
+	"ahsfnu-media-cloud/internal/database"
 	"ahsfnu-media-cloud/internal/middleware"
 
 	"github.com/gin-gonic/gin"
@@ -24,6 +26,16 @@ func SetupRoutes(r *gin.Engine) {
 		{
 			authGroup.POST("/login", auth.Login)
 			authGroup.POST("/register", auth.Register)
+		}
+	}
+	protected := v1.Group("/")
+	protected.Use(middleware.AuthMiddleware(database.GetDB()))
+	{
+
+		materialGroup := protected.Group("/materials")
+		{
+			materialGroup.POST("", materials.UploadMaterial)
+			materialGroup.PUT("/:id", materials.UpdateMaterial)
 		}
 	}
 }

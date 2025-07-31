@@ -31,7 +31,7 @@ func Init() {
 
 	log.Println("Database connected successfully")
 
-	DB.AutoMigrate(&models.User{}, &models.InviteCode{})
+	DB.AutoMigrate(&models.User{}, &models.InviteCode{}, &models.Material{})
 }
 
 func GetDB() *gorm.DB {
