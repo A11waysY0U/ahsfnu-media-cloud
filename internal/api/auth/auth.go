@@ -29,7 +29,7 @@ type AuthResponse struct {
 	User  models.User `json:"user"`
 }
 
-// Login 用户登录
+// 登录
 func Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

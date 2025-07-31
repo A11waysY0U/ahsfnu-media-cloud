@@ -37,7 +37,6 @@ func GenerateInviteCodes(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": codes})
 }
 
-// 查询邀请码列表（仅管理员可用）
 func ListInviteCodes(c *gin.Context) {
 	role, _ := c.Get("role")
 	if role != "admin" {
