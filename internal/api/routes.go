@@ -43,6 +43,7 @@ func SetupRoutes(r *gin.Engine) {
 			materialGroup.GET("/:id", materials.GetMaterial)
 			materialGroup.DELETE("/:id", materials.DeleteMaterial)
 			materialGroup.GET("", materials.SearchMaterials)
+			materialGroup.POST("/:id/star", materials.ToggleStar)
 		}
 		protected.POST("/invite_codes", auth.GenerateInviteCodes)
 		protected.GET("/invite_codes", auth.ListInviteCodes)

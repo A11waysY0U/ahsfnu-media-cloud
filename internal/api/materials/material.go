@@ -409,3 +409,38 @@ func SplitAndTrim(s, sep string) []string {
 	}
 	return res
 }
+
+func ToggleStar(c *gin.Context) {
+	service := GetMaterialService()
+
+	id := c.Param("id")
+	materialID, err := strconv.ParseUint(id, 10, 32)
+	if err != nil {
+		errorResponse(c, http.StatusBadRequest, "无效的素材ID")
+		return
+	}
+
+	var material models.Material
+	err = service.db.First(&material, materialID).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			errorResponse(c, http.StatusNotFound, "素材不存在")
+			return
+		}
+		errorResponse(c, http.StatusInternalServerError, "获取素材失败")
+		return
+	}
+
+	// 切换星标状态
+	material.IsStarred = !material.IsStarred
+
+	if err := service.db.Save(&material).Error; err != nil {
+		errorResponse(c, http.StatusInternalServerError, "更新星标状态失败")
+		return
+	}
+
+	successResponse(c, gin.H{
+		"is_starred": material.IsStarred,
+		"message":    "星标状态更新成功",
+	})
+}
