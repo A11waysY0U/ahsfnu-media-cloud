@@ -15,7 +15,7 @@ func SetupRoutes(r *gin.Engine) {
 	// 添加中间件
 	r.Use(middleware.CORSMiddleware())
 
-	// 静态文件服务 - 提供上传文件的访问
+	// 静态文件服务 - 提供文件的访问
 	r.Static("/uploads", config.AppConfig.Upload.UploadPath)
 
 	// API v1 路由组
@@ -38,6 +38,11 @@ func SetupRoutes(r *gin.Engine) {
 		{
 			materialGroup.POST("", materials.UploadMaterial)
 			materialGroup.PUT("/:id", materials.UpdateMaterial)
+			materialGroup.GET("/:id", materials.GetMaterial)
+			materialGroup.DELETE("/:id", materials.DeleteMaterial)
+			materialGroup.GET("", materials.SearchMaterials)
 		}
+		protected.POST("/invite_codes", auth.GenerateInviteCodes)
+		protected.GET("/invite_codes", auth.ListInviteCodes)
 	}
 }

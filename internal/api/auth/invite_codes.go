@@ -13,7 +13,7 @@ import (
 func GenerateInviteCodes(c *gin.Context) {
 	role, _ := c.Get("role")
 	if role != "admin" {
-		c.JSON(403, gin.H{"error": "无权限"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "无权限"})
 		return
 	}
 	db := database.GetDB()
@@ -40,7 +40,7 @@ func GenerateInviteCodes(c *gin.Context) {
 func ListInviteCodes(c *gin.Context) {
 	role, _ := c.Get("role")
 	if role != "admin" {
-		c.JSON(403, gin.H{"error": "无权限"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "无权限"})
 		return
 	}
 	db := database.GetDB()

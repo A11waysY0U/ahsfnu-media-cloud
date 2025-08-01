@@ -23,5 +23,6 @@ type Material struct {
 	ThumbnailPath    string    `json:"thumbnail_path,omitempty" gorm:"size:500"`
 
 	// 关联关系
-	Uploader User `json:"uploader,omitempty" gorm:"foreignKey:UploadedBy"`
+	Uploader *User          `json:"uploader,omitempty" gorm:"foreignKey:UploadedBy"`
+	Workflow *WorkflowGroup `json:"workflow,omitempty" gorm:"foreignKey:WorkflowID"`
 }

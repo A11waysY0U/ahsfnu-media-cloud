@@ -6,6 +6,7 @@ import (
 	"ahsfnu-media-cloud/internal/services"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -14,6 +15,10 @@ import (
 type MaterialService struct {
 	db            *gorm.DB
 	uploadService *services.UploadService
+}
+
+type MaterialQueryBuilder struct {
+	query *gorm.DB
 }
 
 // 单例模式
@@ -60,6 +65,69 @@ func getMaterialByID(service *MaterialService, materialID uint) (*models.Materia
 		return nil, false
 	}
 	return &material, true
+}
+
+func NewMaterialQueryBuilder(db *gorm.DB) *MaterialQueryBuilder {
+	return &MaterialQueryBuilder{
+		query: db.Model(&models.Material{}).Preload("Uploader").Preload("MaterialTags.Tag"),
+	}
+}
+
+func (qb *MaterialQueryBuilder) WithWorkflow(workflowID string) *MaterialQueryBuilder {
+	if workflowID != "" {
+		qb.query = qb.query.Where("workflow_id = ?", workflowID)
+	}
+	return qb
+}
+
+func (qb *MaterialQueryBuilder) WithFileType(fileType string) *MaterialQueryBuilder {
+	if fileType != "" {
+		qb.query = qb.query.Where("file_type = ?", fileType)
+	}
+	return qb
+}
+
+func (qb *MaterialQueryBuilder) WithKeyword(keyword string) *MaterialQueryBuilder {
+	if keyword != "" {
+		qb.query = qb.query.Where("original_filename ILIKE ?", "%"+keyword+"%")
+	}
+	return qb
+}
+
+func (qb *MaterialQueryBuilder) WithTags(tagsParam string) *MaterialQueryBuilder {
+	if tagsParam != "" {
+		tagIDs := []uint{}
+		for _, idStr := range SplitAndTrim(tagsParam, ",") {
+			if id, err := strconv.ParseUint(idStr, 10, 32); err == nil {
+				tagIDs = append(tagIDs, uint(id))
+			}
+		}
+		if len(tagIDs) > 0 {
+			qb.query = qb.query.Joins("JOIN material_tags ON materials.id = material_tags.material_id").
+				Where("material_tags.tag_id IN ?", tagIDs).Group("materials.id")
+		}
+	}
+	return qb
+}
+
+func (qb *MaterialQueryBuilder) WithPublic() *MaterialQueryBuilder {
+	qb.query = qb.query.Where("is_public = ?", true)
+	return qb
+}
+
+func (qb *MaterialQueryBuilder) Build() *gorm.DB {
+	return qb.query
+}
+
+func paginatedResponse(c *gin.Context, data interface{}, page, pageSize int, total int64) {
+	c.JSON(http.StatusOK, gin.H{
+		"data": data,
+		"pagination": gin.H{
+			"page":      page,
+			"page_size": pageSize,
+			"total":     total,
+		},
+	})
 }
 
 // 统一错误响应
@@ -216,4 +284,128 @@ func GetMaterialDetails(c *gin.Context) {
 	material.FilePath = service.uploadService.GetFileURL(material)
 
 	successResponse(c, material)
+}
+
+// GetMaterial 获取素材详情
+func GetMaterial(c *gin.Context) {
+	service := GetMaterialService()
+
+	materialID, valid := validateMaterialID(c)
+	if !valid {
+		return
+	}
+
+	var material models.Material
+	err := service.db.Preload("Uploader").Preload("MaterialTags.Tag").First(&material, materialID).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			errorResponse(c, http.StatusNotFound, "素材不存在")
+			return
+		}
+		errorResponse(c, http.StatusInternalServerError, "获取素材详情失败")
+		return
+	}
+
+	// 添加文件URL
+	material.FilePath = service.uploadService.GetFileURL(&material)
+
+	successResponse(c, material)
+}
+
+// DeleteMaterial 删除素材
+func DeleteMaterial(c *gin.Context) {
+	service := GetMaterialService()
+
+	id := c.Param("id")
+	materialID, err := strconv.ParseUint(id, 10, 32)
+	if err != nil {
+		errorResponse(c, http.StatusBadRequest, "无效的素材ID")
+		return
+	}
+
+	var material models.Material
+	err = service.db.First(&material, materialID).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			errorResponse(c, http.StatusNotFound, "素材不存在")
+			return
+		}
+		errorResponse(c, http.StatusInternalServerError, "获取素材失败")
+		return
+	}
+
+	// 检查权限
+	userID, _ := c.Get("user_id")
+	userRole, _ := c.Get("role")
+	if material.UploadedBy != userID.(uint) && userRole.(string) != "admin" {
+		errorResponse(c, http.StatusForbidden, "没有权限删除此素材")
+		return
+	}
+
+	// 删除文件
+	if err := service.uploadService.DeleteFile(&material); err != nil {
+		errorResponse(c, http.StatusInternalServerError, "删除文件失败")
+		return
+	}
+
+	// 删除数据库记录
+	if err := service.db.Delete(&material).Error; err != nil {
+		errorResponse(c, http.StatusInternalServerError, "删除素材记录失败")
+		return
+	}
+
+	successResponse(c, gin.H{"message": "素材删除成功"})
+}
+
+// GetMaterials 获取素材列表
+func SearchMaterials(c *gin.Context) {
+	service := GetMaterialService()
+
+	// 获取查询参数
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
+	workflowID := c.Query("workflow_id")
+	fileType := c.Query("file_type")
+	keyword := c.Query("keyword")
+	tagsParam := c.Query("tags")
+
+	// 使用查询构建器
+	queryBuilder := NewMaterialQueryBuilder(service.db)
+	query := queryBuilder.
+		WithWorkflow(workflowID).
+		WithFileType(fileType).
+		WithKeyword(keyword).
+		WithTags(tagsParam).
+		Build()
+
+	// 分页
+	offset := (page - 1) * pageSize
+	var materials []models.Material
+	var total int64
+
+	query.Count(&total)
+	err := query.Offset(offset).Limit(pageSize).Order("upload_time DESC").Find(&materials).Error
+	if err != nil {
+		errorResponse(c, http.StatusInternalServerError, "获取素材列表失败")
+		return
+	}
+
+	// 添加文件URL
+	for i := range materials {
+		materials[i].FilePath = service.uploadService.GetFileURL(&materials[i])
+	}
+
+	paginatedResponse(c, materials, page, pageSize, total)
+}
+
+// SplitAndTrim 工具函数：分割字符串并去除空格
+func SplitAndTrim(s, sep string) []string {
+	res := []string{}
+	for _, part := range strings.Split(s, sep) {
+		trimmed := strings.TrimSpace(part)
+		if trimmed != "" {
+			res = append(res, trimmed)
+		}
+	}
+	return res
 }
