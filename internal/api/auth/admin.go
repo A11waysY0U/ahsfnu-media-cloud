@@ -63,3 +63,18 @@ func DeleteUser(c *gin.Context) {
 	}
 	c.JSON(200, gin.H{"message": "删除成功"})
 }
+
+func GetUsers(c *gin.Context) {
+	role, _ := c.Get("role")
+	if role != "admin" {
+		c.JSON(403, gin.H{"error": "无权限"})
+		return
+	}
+	db := database.GetDB()
+	var users []models.User
+	if err := db.Preload("Inviter").Find(&users).Error; err != nil {
+		c.JSON(500, gin.H{"error": "获取用户列表失败"})
+		return
+	}
+	c.JSON(200, users)
+}

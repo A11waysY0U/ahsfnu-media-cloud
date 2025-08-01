@@ -156,18 +156,3 @@ func Register(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, response)
 }
-
-func GetUsers(c *gin.Context) {
-	role, _ := c.Get("role")
-	if role != "admin" {
-		c.JSON(403, gin.H{"error": "无权限"})
-		return
-	}
-	db := database.GetDB()
-	var users []models.User
-	if err := db.Preload("Inviter").Find(&users).Error; err != nil {
-		c.JSON(500, gin.H{"error": "获取用户列表失败"})
-		return
-	}
-	c.JSON(200, users)
-}

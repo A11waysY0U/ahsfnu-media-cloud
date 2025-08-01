@@ -3,6 +3,8 @@ package api
 import (
 	"ahsfnu-media-cloud/internal/api/auth"
 	"ahsfnu-media-cloud/internal/api/materials"
+	"ahsfnu-media-cloud/internal/api/tag"
+	"ahsfnu-media-cloud/internal/api/workflow"
 	"ahsfnu-media-cloud/internal/config"
 	"ahsfnu-media-cloud/internal/database"
 	"ahsfnu-media-cloud/internal/middleware"
@@ -44,5 +46,37 @@ func SetupRoutes(r *gin.Engine) {
 		}
 		protected.POST("/invite_codes", auth.GenerateInviteCodes)
 		protected.GET("/invite_codes", auth.ListInviteCodes)
+		// 用户相关
+		protected.GET("/profile", auth.GetProfile)
+		protected.PUT("/profile", auth.UpdateProfile)
+		protected.PUT("/profile/password", auth.ChangePassword)
+		protected.GET("/users", auth.GetUsers)
+		protected.PUT("/users/:id/role", auth.UpdateUserRole) // 管理员修改用户权限
+		protected.DELETE("/users/:id", auth.DeleteUser)       // 管理员删除用户
+
+		// 标签相关路由
+		tagGroup := protected.Group("/tags")
+		{
+			tagGroup.GET("", tag.GetTags)
+			tagGroup.POST("", tag.CreateTag)
+			tagGroup.PUT("/:id", tag.UpdateTag)
+			tagGroup.DELETE("/:id", tag.DeleteTag)
+			tagGroup.POST("/:id/materials/:materialId", tag.AddTagToMaterial)
+			tagGroup.DELETE("/:id/materials/:materialId", tag.RemoveTagFromMaterial)
+		}
+
+		// 工作流相关路由
+		workflowGroup := protected.Group("/workflows")
+		{
+			workflowGroup.GET("", workflow.GetWorkflows)
+			workflowGroup.POST("", workflow.CreateWorkflow)
+			workflowGroup.GET("/:id", workflow.GetWorkflow)
+			workflowGroup.PUT("/:id", workflow.UpdateWorkflow)
+			workflowGroup.DELETE("/:id", workflow.DeleteWorkflow)
+			workflowGroup.POST("/:id/members", workflow.AddWorkflowMember)
+			workflowGroup.DELETE("/:id/members/:userId", workflow.RemoveWorkflowMember)
+		}
+
 	}
+
 }
