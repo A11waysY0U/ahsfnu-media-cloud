@@ -156,7 +156,7 @@ export const materialAPI = {
 // 标签相关API
 export const tagAPI = {
   // 获取标签列表
-  getList: () => api.get<Tag[]>('/tags'),
+  getList: () => api.get<ApiResponse<Tag[]>>('/tags'),
   
   // 创建标签
   create: (data: { name: string; color?: string }) => api.post<Tag>('/tags', data),

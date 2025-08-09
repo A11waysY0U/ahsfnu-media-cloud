@@ -156,7 +156,7 @@ const loadStats = async () => {
 
     // 加载标签统计
     const tagsResponse = await tagAPI.getList()
-    stats.value.totalTags = Array.isArray(tagsResponse.data) ? tagsResponse.data.length : 0
+    stats.value.totalTags = Array.isArray(tagsResponse.data.data) ? tagsResponse.data.data.length : 0
 
     // 加载工作流统计
     const workflowsResponse = await workflowAPI.getList()

@@ -208,7 +208,7 @@ const loadTags = async () => {
   loading.value = true
   try {
     const response = await tagAPI.getList()
-    tags.value = Array.isArray(response.data) ? response.data : []
+    tags.value = Array.isArray(response.data.data) ? response.data.data : []
   } catch (error) {
     ElMessage.error('加载标签失败')
   } finally {

@@ -250,7 +250,7 @@ const loadMaterial = async () => {
 const loadTags = async () => {
   try {
     const response = await tagAPI.getList()
-    tags.value = response.data
+    tags.value = response.data.data || []
   } catch (error) {
     ElMessage.error('加载标签失败')
   }
@@ -271,7 +271,7 @@ const updateForm = () => {
     form.is_starred = material.value.is_starred
     form.is_public = material.value.is_public
     form.workflow_id = material.value.workflow_id || null
-    form.tag_ids = material.value.material_tags?.map(mt => mt.tag?.id).filter((id): id is number => id !== undefined) || []
+    form.tag_ids = material.value.material_tags?.map(mt => mt.tag?.id).filter((id): id is number => id !== undefined && id !== null) || []
   }
 }
 
@@ -324,9 +324,16 @@ const deleteMaterial = async () => {
 }
 
 const getMaterialUrl = (material: Material) => {
-  return material.file_path.startsWith('http') 
-    ? material.file_path 
-    : `/uploads${material.file_path}`
+  if (material.file_path.startsWith('http')) {
+    return material.file_path
+  }
+  
+  // 如果是相对路径，添加 /uploads 前缀
+  if (material.file_path.startsWith('/')) {
+    return material.file_path
+  }
+  
+  return `/uploads/${material.file_path}`
 }
 
 const formatFileSize = (bytes: number) => {

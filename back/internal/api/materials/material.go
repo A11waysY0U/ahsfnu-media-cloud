@@ -60,7 +60,7 @@ func checkMaterialPermission(c *gin.Context, material *models.Material) bool {
 // 获取素材工具函数
 func getMaterialByID(service *MaterialService, materialID uint) (*models.Material, bool) {
 	var material models.Material
-	err := service.db.Preload("Uploader").Preload("MaterialTags.Tag").First(&material, materialID).Error
+	err := service.db.Preload("Uploader").Preload("MaterialTags").Preload("MaterialTags.Tag").First(&material, materialID).Error
 	if err != nil {
 		return nil, false
 	}
@@ -69,7 +69,7 @@ func getMaterialByID(service *MaterialService, materialID uint) (*models.Materia
 
 func NewMaterialQueryBuilder(db *gorm.DB) *MaterialQueryBuilder {
 	return &MaterialQueryBuilder{
-		query: db.Model(&models.Material{}).Preload("Uploader").Preload("MaterialTags.Tag"),
+		query: db.Model(&models.Material{}).Preload("Uploader").Preload("MaterialTags").Preload("MaterialTags.Tag"),
 	}
 }
 
@@ -196,7 +196,7 @@ func UploadMaterial(c *gin.Context) {
 	}
 
 	// 预加载关联数据
-	service.db.Preload("Uploader").First(material, material.ID)
+	service.db.Preload("Uploader").Preload("MaterialTags").Preload("MaterialTags.Tag").First(material, material.ID)
 
 	// 添加文件URL
 	material.FilePath = service.uploadService.GetFileURL(material)
@@ -288,7 +288,7 @@ func UpdateMaterial(c *gin.Context) {
 	}
 
 	// 重新获取更新后的数据
-	service.db.Preload("Uploader").Preload("MaterialTags.Tag").First(material, materialID)
+	service.db.Preload("Uploader").Preload("MaterialTags").Preload("MaterialTags.Tag").First(material, materialID)
 	material.FilePath = service.uploadService.GetFileURL(material)
 
 	// 转换为安全的响应格式
@@ -338,7 +338,7 @@ func GetMaterial(c *gin.Context) {
 	}
 
 	var material models.Material
-	err := service.db.Preload("Uploader").Preload("MaterialTags.Tag").First(&material, materialID).Error
+	err := service.db.Preload("Uploader").Preload("MaterialTags").Preload("MaterialTags.Tag").First(&material, materialID).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			errorResponse(c, http.StatusNotFound, "素材不存在")
@@ -451,7 +451,7 @@ func SearchMaterials(c *gin.Context) {
 	var total int64
 
 	query.Count(&total)
-	err := query.Preload("Uploader").Preload("MaterialTags.Tag").Offset(offset).Limit(pageSize).Order("upload_time DESC").Find(&materials).Error
+	err := query.Preload("Uploader").Preload("MaterialTags").Preload("MaterialTags.Tag").Offset(offset).Limit(pageSize).Order("upload_time DESC").Find(&materials).Error
 	if err != nil {
 		errorResponse(c, http.StatusInternalServerError, "获取素材列表失败")
 		return

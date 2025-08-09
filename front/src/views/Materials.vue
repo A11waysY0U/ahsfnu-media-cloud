@@ -415,10 +415,19 @@ const uploadAction = computed(() => '/api/v1/materials')
 const uploadHeaders = computed(() => ({
   Authorization: `Bearer ${authStore.token}`,
 }))
-const uploadData = computed(() => ({
-  workflow_id: uploadForm.workflowId,
-  tag_ids: uploadForm.tagIds,
-}))
+const uploadData = computed(() => {
+  const data: Record<string, any> = {}
+  
+  if (uploadForm.workflowId) {
+    data.workflow_id = uploadForm.workflowId
+  }
+  
+  if (uploadForm.tagIds && uploadForm.tagIds.length > 0) {
+    data.tag_ids = uploadForm.tagIds
+  }
+  
+  return data
+})
 
 // 方法
 const loadMaterials = async () => {
@@ -446,7 +455,7 @@ const loadMaterials = async () => {
 const loadTags = async () => {
   try {
     const response = await tagAPI.getList()
-    tags.value = response.data || []
+    tags.value = response.data.data || []
   } catch (error) {
     ElMessage.error('加载标签失败')
   }
@@ -483,7 +492,7 @@ const viewMaterial = (material: Material) => {
   editForm.is_starred = material.is_starred
   editForm.is_public = material.is_public
   editForm.workflow_id = material.workflow_id || null
-  editForm.tag_ids = material.material_tags?.map(mt => mt.tag?.id).filter((id): id is number => id !== undefined) || []
+  editForm.tag_ids = material.material_tags?.map(mt => mt.tag?.id).filter((id): id is number => id !== undefined && id !== null) || []
   showDetailDialog.value = true
 }
 
@@ -560,7 +569,25 @@ const onUploadSuccess = (response: any, file: any) => {
 }
 
 const onUploadError = (error: any, file: any) => {
-  ElMessage.error(`${file.name} 上传失败`)
+  console.error('Upload error:', error)
+  let errorMessage = `${file.name} 上传失败`
+  
+  if (error.response) {
+    const errorData = error.response.data
+    if (errorData && errorData.error) {
+      errorMessage = `${file.name} 上传失败: ${errorData.error}`
+    } else if (error.response.status === 413) {
+      errorMessage = `${file.name} 上传失败: 文件大小超过限制`
+    } else if (error.response.status === 401) {
+      errorMessage = `${file.name} 上传失败: 请重新登录`
+    } else if (error.response.status === 403) {
+      errorMessage = `${file.name} 上传失败: 权限不足`
+    }
+  } else if (error.message) {
+    errorMessage = `${file.name} 上传失败: ${error.message}`
+  }
+  
+  ElMessage.error(errorMessage)
 }
 
 const submitUpload = () => {
@@ -570,9 +597,16 @@ const submitUpload = () => {
 
 // 工具方法
 const getMaterialUrl = (material: Material) => {
-  return material.file_path.startsWith('http') 
-    ? material.file_path 
-    : `${material.file_path}`
+  if (material.file_path.startsWith('http')) {
+    return material.file_path
+  }
+  
+  // 如果是相对路径，添加 /uploads 前缀
+  if (material.file_path.startsWith('/')) {
+    return material.file_path
+  }
+  
+  return `/uploads/${material.file_path}`
 }
 
 const formatFileSize = (bytes: number) => {
