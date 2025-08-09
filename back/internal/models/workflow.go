@@ -8,6 +8,10 @@ type WorkflowGroup struct {
 	ID          uint       `json:"id" gorm:"primaryKey"`
 	Name        string     `json:"name" gorm:"not null;size:100"`
 	Description string     `json:"description,omitempty"`
+	Type        string     `json:"type" gorm:"default:'custom';size:50"`  // image_processing, video_processing, file_conversion, batch_operation, custom
+	Color       string     `json:"color" gorm:"default:'#409EFF';size:7"` // 十六进制颜色
+	IsActive    bool       `json:"is_active" gorm:"default:true"`
+	Config      string     `json:"config,omitempty" gorm:"type:text"`      // JSON配置
 	Status      string     `json:"status" gorm:"default:'active';size:20"` // active, archived
 	CreatedBy   uint       `json:"created_by" gorm:"not null"`
 	CreatedAt   time.Time  `json:"created_at" gorm:"autoCreateTime"`
@@ -36,6 +40,10 @@ type WorkflowGroupResponse struct {
 	ID          uint       `json:"id"`
 	Name        string     `json:"name"`
 	Description string     `json:"description,omitempty"`
+	Type        string     `json:"type"`
+	Color       string     `json:"color"`
+	IsActive    bool       `json:"is_active"`
+	Config      string     `json:"config,omitempty"`
 	Status      string     `json:"status"`
 	CreatedBy   uint       `json:"created_by"`
 	CreatedAt   time.Time  `json:"created_at"`
@@ -66,6 +74,10 @@ func (w *WorkflowGroup) ToWorkflowGroupResponse() *WorkflowGroupResponse {
 		ID:          w.ID,
 		Name:        w.Name,
 		Description: w.Description,
+		Type:        w.Type,
+		Color:       w.Color,
+		IsActive:    w.IsActive,
+		Config:      w.Config,
 		Status:      w.Status,
 		CreatedBy:   w.CreatedBy,
 		CreatedAt:   w.CreatedAt,

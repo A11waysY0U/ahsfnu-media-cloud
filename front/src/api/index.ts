@@ -175,15 +175,29 @@ export const workflowAPI = {
     api.get<ApiResponse<WorkflowGroup[]>>('/workflows', { params }),
   
   // 创建工作流
-  create: (data: { name: string; description?: string; members?: number[] }) =>
-    api.post<WorkflowGroup>('/workflows', data),
+  create: (data: { 
+    name: string; 
+    description?: string; 
+    type?: string;
+    color?: string;
+    is_active?: boolean;
+    config?: string;
+    members?: number[] 
+  }) => api.post<WorkflowGroup>('/workflows', data),
   
   // 获取工作流详情
   getDetail: (id: number) => api.get<WorkflowGroup>(`/workflows/${id}`),
   
   // 更新工作流
-  update: (id: number, data: { name?: string; description?: string; members?: number[] }) =>
-    api.put<WorkflowGroup>(`/workflows/${id}`, data),
+  update: (id: number, data: { 
+    name?: string; 
+    description?: string; 
+    type?: string;
+    color?: string;
+    is_active?: boolean;
+    config?: string;
+    members?: number[] 
+  }) => api.put<WorkflowGroup>(`/workflows/${id}`, data),
   
   // 删除工作流
   delete: (id: number) => api.delete(`/workflows/${id}`),

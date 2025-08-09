@@ -53,6 +53,10 @@ func CreateWorkflow(c *gin.Context) {
 	var req struct {
 		Name        string `json:"name" binding:"required"`
 		Description string `json:"description"`
+		Type        string `json:"type"`
+		Color       string `json:"color"`
+		IsActive    bool   `json:"is_active"`
+		Config      string `json:"config"`
 		Members     []uint `json:"members"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -60,9 +64,21 @@ func CreateWorkflow(c *gin.Context) {
 		return
 	}
 
+	// 设置默认值
+	if req.Type == "" {
+		req.Type = "custom"
+	}
+	if req.Color == "" {
+		req.Color = "#409EFF"
+	}
+
 	workflow := models.WorkflowGroup{
 		Name:        req.Name,
 		Description: req.Description,
+		Type:        req.Type,
+		Color:       req.Color,
+		IsActive:    req.IsActive,
+		Config:      req.Config,
 		Status:      "active",
 		CreatedBy:   userID.(uint),
 	}
@@ -124,6 +140,10 @@ func UpdateWorkflow(c *gin.Context) {
 	var req struct {
 		Name        string `json:"name"`
 		Description string `json:"description"`
+		Type        string `json:"type"`
+		Color       string `json:"color"`
+		IsActive    *bool  `json:"is_active"`
+		Config      string `json:"config"`
 		Members     []uint `json:"members"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -137,6 +157,18 @@ func UpdateWorkflow(c *gin.Context) {
 	}
 	if req.Description != "" {
 		updates["description"] = req.Description
+	}
+	if req.Type != "" {
+		updates["type"] = req.Type
+	}
+	if req.Color != "" {
+		updates["color"] = req.Color
+	}
+	if req.IsActive != nil {
+		updates["is_active"] = *req.IsActive
+	}
+	if req.Config != "" {
+		updates["config"] = req.Config
 	}
 	if err := db.Model(&workflow).Updates(updates).Error; err != nil {
 		c.JSON(500, gin.H{"error": "更新失败"})

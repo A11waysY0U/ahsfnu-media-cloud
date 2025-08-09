@@ -245,9 +245,14 @@ const predefineColors = [
 
 // 计算属性
 const filteredWorkflows = computed(() => {
+  if (!workflows.value || workflows.value.length === 0) {
+    return []
+  }
+  
   if (!searchKeyword.value) {
     return workflows.value
   }
+  
   return workflows.value.filter(workflow =>
     workflow.name.toLowerCase().includes(searchKeyword.value.toLowerCase()) ||
     (workflow.description && workflow.description.toLowerCase().includes(searchKeyword.value.toLowerCase()))
@@ -259,9 +264,10 @@ const loadWorkflows = async () => {
   loading.value = true
   try {
     const response = await workflowAPI.getList()
-    workflows.value = response.data.data
+    workflows.value = response.data.data || []
   } catch (error) {
     ElMessage.error('加载工作流失败')
+    workflows.value = []
   } finally {
     loading.value = false
   }
