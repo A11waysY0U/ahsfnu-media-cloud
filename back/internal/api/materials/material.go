@@ -60,7 +60,7 @@ func checkMaterialPermission(c *gin.Context, material *models.Material) bool {
 // 获取素材工具函数
 func getMaterialByID(service *MaterialService, materialID uint) (*models.Material, bool) {
 	var material models.Material
-	err := service.db.First(&material, materialID).Error
+	err := service.db.Preload("Uploader").Preload("MaterialTags.Tag").First(&material, materialID).Error
 	if err != nil {
 		return nil, false
 	}
@@ -179,6 +179,9 @@ func UploadMaterial(c *gin.Context) {
 		return
 	}
 
+	// 确保新上传的素材默认为私有（非公开）
+	material.IsPublic = false
+
 	// 保存到数据库
 	if err := tx.Create(material).Error; err != nil {
 		tx.Rollback()
@@ -198,7 +201,9 @@ func UploadMaterial(c *gin.Context) {
 	// 添加文件URL
 	material.FilePath = service.uploadService.GetFileURL(material)
 
-	successResponse(c, material)
+	// 转换为安全的响应格式
+	materialResponse := material.ToMaterialResponse()
+	successResponse(c, materialResponse)
 }
 
 // UpdateMaterial 更新素材
@@ -286,7 +291,9 @@ func UpdateMaterial(c *gin.Context) {
 	service.db.Preload("Uploader").Preload("MaterialTags.Tag").First(material, materialID)
 	material.FilePath = service.uploadService.GetFileURL(material)
 
-	successResponse(c, material)
+	// 转换为安全的响应格式
+	materialResponse := material.ToMaterialResponse()
+	successResponse(c, materialResponse)
 }
 
 func GetMaterialDetails(c *gin.Context) {
@@ -303,15 +310,22 @@ func GetMaterialDetails(c *gin.Context) {
 		return
 	}
 
-	// 检查权限
-	if !checkMaterialPermission(c, material) {
+	// 获取当前用户信息
+	userID, _ := c.Get("user_id")
+	userRole, _ := c.Get("role")
+
+	// 检查权限：只有素材所有者、管理员或者公开素材可以被查看
+	if material.UploadedBy != userID.(uint) && userRole.(string) != "admin" && !material.IsPublic {
+		errorResponse(c, http.StatusForbidden, "没有权限查看此素材")
 		return
 	}
 
 	// 添加文件URL
 	material.FilePath = service.uploadService.GetFileURL(material)
 
-	successResponse(c, material)
+	// 转换为安全的响应格式
+	materialResponse := material.ToMaterialResponse()
+	successResponse(c, materialResponse)
 }
 
 // GetMaterial 获取素材详情
@@ -334,10 +348,22 @@ func GetMaterial(c *gin.Context) {
 		return
 	}
 
+	// 获取当前用户信息
+	userID, _ := c.Get("user_id")
+	userRole, _ := c.Get("role")
+
+	// 检查权限：只有素材所有者、管理员或者公开素材可以被查看
+	if material.UploadedBy != userID.(uint) && userRole.(string) != "admin" && !material.IsPublic {
+		errorResponse(c, http.StatusForbidden, "没有权限查看此素材")
+		return
+	}
+
 	// 添加文件URL
 	material.FilePath = service.uploadService.GetFileURL(&material)
 
-	successResponse(c, material)
+	// 转换为安全的响应格式
+	materialResponse := material.ToMaterialResponse()
+	successResponse(c, materialResponse)
 }
 
 // DeleteMaterial 删除素材
@@ -397,6 +423,10 @@ func SearchMaterials(c *gin.Context) {
 	keyword := c.Query("keyword")
 	tagsParam := c.Query("tags")
 
+	// 获取当前用户信息
+	userID, _ := c.Get("user_id")
+	userRole, _ := c.Get("role")
+
 	// 使用查询构建器
 	queryBuilder := NewMaterialQueryBuilder(service.db)
 	query := queryBuilder.
@@ -405,6 +435,15 @@ func SearchMaterials(c *gin.Context) {
 		WithKeyword(keyword).
 		WithTags(tagsParam).
 		Build()
+
+	// 根据用户角色和权限过滤素材
+	if userRole.(string) == "admin" {
+		// 管理员可以看到所有素材
+		// 不需要额外过滤
+	} else {
+		// 普通用户只能看到自己的素材和公开的素材
+		query = query.Where("(uploaded_by = ? OR is_public = ?)", userID.(uint), true)
+	}
 
 	// 分页
 	offset := (page - 1) * pageSize
@@ -418,12 +457,17 @@ func SearchMaterials(c *gin.Context) {
 		return
 	}
 
-	// 添加文件URL
+	// 转换为安全的响应格式
+	var materialResponses []models.MaterialResponse
 	for i := range materials {
+		// 添加文件URL
 		materials[i].FilePath = service.uploadService.GetFileURL(&materials[i])
+		// 转换为安全的响应格式
+		materialResponse := materials[i].ToMaterialResponse()
+		materialResponses = append(materialResponses, *materialResponse)
 	}
 
-	paginatedResponse(c, materials, page, pageSize, total)
+	paginatedResponse(c, materialResponses, page, pageSize, total)
 }
 
 // SplitAndTrim 工具函数：分割字符串并去除空格

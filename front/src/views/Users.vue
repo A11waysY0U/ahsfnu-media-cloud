@@ -6,11 +6,6 @@
         <h1>用户管理</h1>
         <p class="subtitle">管理系统中的所有用户账户</p>
       </div>
-      <div class="header-right">
-        <el-button type="primary" @click="showCreateDialog = true" :icon="Plus">
-          创建用户
-        </el-button>
-      </div>
     </div>
 
     <!-- 搜索和筛选区域 -->
@@ -90,11 +85,6 @@
             {{ formatDate(row.created_at) }}
           </template>
         </el-table-column>
-        <el-table-column label="最后更新" width="180">
-          <template #default="{ row }">
-            {{ formatDate(row.updated_at) }}
-          </template>
-        </el-table-column>
         <el-table-column label="邀请人" width="120">
           <template #default="{ row }">
             <span v-if="row.inviter_id">{{ getInviterName(row.inviter_id) }}</span>
@@ -103,13 +93,6 @@
         </el-table-column>
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
-            <el-button
-              type="primary"
-              size="small"
-              @click="editUser(row)"
-            >
-              编辑
-            </el-button>
             <el-button
               :type="row.role === 'admin' ? 'warning' : 'success'"
               size="small"
@@ -142,72 +125,13 @@
         />
       </div>
     </div>
-
-    <!-- 创建/编辑用户对话框 -->
-    <el-dialog
-      v-model="showCreateDialog"
-      :title="isEditing ? '编辑用户' : '创建用户'"
-      width="500px"
-      :close-on-click-modal="false"
-    >
-      <el-form
-        ref="userFormRef"
-        :model="userForm"
-        :rules="userRules"
-        label-width="100px"
-      >
-        <el-form-item label="用户名" prop="username">
-          <el-input
-            v-model="userForm.username"
-            placeholder="请输入用户名"
-            :disabled="isEditing"
-          />
-        </el-form-item>
-        <el-form-item label="邮箱" prop="email">
-          <el-input
-            v-model="userForm.email"
-            type="email"
-            placeholder="请输入邮箱地址"
-          />
-        </el-form-item>
-        <el-form-item label="密码" prop="password" v-if="!isEditing">
-          <el-input
-            v-model="userForm.password"
-            type="password"
-            show-password
-            placeholder="请输入密码"
-          />
-        </el-form-item>
-        <el-form-item label="角色" prop="role">
-          <el-select v-model="userForm.role" placeholder="请选择角色">
-            <el-option label="普通用户" value="user" />
-            <el-option label="管理员" value="admin" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="邀请码" prop="inviteCode" v-if="!isEditing">
-          <el-input
-            v-model="userForm.inviteCode"
-            placeholder="请输入邀请码"
-          />
-        </el-form-item>
-      </el-form>
-
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="showCreateDialog = false">取消</el-button>
-          <el-button type="primary" @click="submitUser" :loading="submitting">
-            {{ isEditing ? '保存' : '创建' }}
-          </el-button>
-        </span>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Search } from '@element-plus/icons-vue'
+import { Search } from '@element-plus/icons-vue'
 import type { User } from '@/types'
 import { userAPI } from '@/api'
 import { useAuthStore } from '@/stores/auth'
@@ -216,14 +140,10 @@ const authStore = useAuthStore()
 
 // 响应式数据
 const loading = ref(false)
-const submitting = ref(false)
 const users = ref<User[]>([])
 const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(20)
-const showCreateDialog = ref(false)
-const isEditing = ref(false)
-const editingUserId = ref<number | null>(null)
 
 // 筛选条件
 const filters = reactive({
@@ -231,38 +151,6 @@ const filters = reactive({
   role: '',
   dateRange: [] as string[],
 })
-
-// 表单数据
-const userFormRef = ref()
-const userForm = reactive({
-  username: '',
-  email: '',
-  password: '',
-  role: 'user',
-  inviteCode: '',
-})
-
-// 表单验证规则
-const userRules = {
-  username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 3, max: 20, message: '用户名长度在 3 到 20 个字符', trigger: 'blur' },
-  ],
-  email: [
-    { required: true, message: '请输入邮箱地址', trigger: 'blur' },
-    { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' },
-  ],
-  password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, message: '密码长度不能少于 6 个字符', trigger: 'blur' },
-  ],
-  role: [
-    { required: true, message: '请选择角色', trigger: 'change' },
-  ],
-  inviteCode: [
-    { required: true, message: '请输入邀请码', trigger: 'blur' },
-  ],
-}
 
 // 计算属性
 const currentUser = computed(() => authStore.user)
@@ -281,8 +169,15 @@ const loadUsers = async () => {
     }
     
     const response = await userAPI.getList(params)
-    users.value = response.data.data
-    total.value = response.data.pagination?.total || 0
+    // 后端现在返回分页格式
+    if (response.data && 'data' in response.data) {
+      users.value = response.data.data || []
+      total.value = response.data.pagination?.total || 0
+    } else {
+      // 兼容旧格式
+      users.value = Array.isArray(response.data) ? response.data : []
+      total.value = users.value.length
+    }
   } catch (error) {
     ElMessage.error('加载用户列表失败')
   } finally {
@@ -304,26 +199,6 @@ const handleSizeChange = (size: number) => {
 const handleCurrentChange = (page: number) => {
   currentPage.value = page
   loadUsers()
-}
-
-const resetForm = () => {
-  userForm.username = ''
-  userForm.email = ''
-  userForm.password = ''
-  userForm.role = 'user'
-  userForm.inviteCode = ''
-  isEditing.value = false
-  editingUserId.value = null
-  userFormRef.value?.clearValidate()
-}
-
-const editUser = (user: User) => {
-  isEditing.value = true
-  editingUserId.value = user.id
-  userForm.username = user.username
-  userForm.email = user.email
-  userForm.role = user.role
-  showCreateDialog.value = true
 }
 
 const deleteUser = async (user: User) => {
@@ -373,41 +248,13 @@ const toggleRole = async (user: User) => {
       }
     )
     
-    await userAPI.update(user.id, { role: newRole })
+    await userAPI.updateRole(user.id, newRole)
     ElMessage.success(`${actionText}成功`)
     loadUsers()
   } catch (error) {
     if (error !== 'cancel') {
       ElMessage.error('操作失败')
     }
-  }
-}
-
-const submitUser = async () => {
-  try {
-    await userFormRef.value?.validate()
-    submitting.value = true
-    
-    if (isEditing.value && editingUserId.value) {
-      await userAPI.update(editingUserId.value, {
-        email: userForm.email,
-        role: userForm.role,
-      })
-      ElMessage.success('更新成功')
-    } else {
-      await userAPI.create(userForm)
-      ElMessage.success('创建成功')
-    }
-    
-    showCreateDialog.value = false
-    resetForm()
-    loadUsers()
-  } catch (error) {
-    if (error !== false) { // 表单验证失败时 error 为 false
-      ElMessage.error(isEditing.value ? '更新失败' : '创建失败')
-    }
-  } finally {
-    submitting.value = false
   }
 }
 

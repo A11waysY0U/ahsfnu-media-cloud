@@ -32,7 +32,14 @@ func GetTags(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": tags})
+	// 转换为安全的响应格式
+	var tagResponses []models.TagResponse
+	for i := range tags {
+		tagResponse := tags[i].ToTagResponse()
+		tagResponses = append(tagResponses, *tagResponse)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": tagResponses})
 }
 
 // CreateTag 创建标签
@@ -81,7 +88,9 @@ func CreateTag(c *gin.Context) {
 	// 预加载创建者信息
 	service.db.Preload("Creator").First(tag, tag.ID)
 
-	c.JSON(http.StatusCreated, tag)
+	// 转换为安全的响应格式
+	tagResponse := tag.ToTagResponse()
+	c.JSON(http.StatusCreated, tagResponse)
 }
 
 // UpdateTag 更新标签
@@ -141,7 +150,9 @@ func UpdateTag(c *gin.Context) {
 	// 重新获取更新后的数据
 	service.db.Preload("Creator").First(&tag, tagID)
 
-	c.JSON(http.StatusOK, tag)
+	// 转换为安全的响应格式
+	tagResponse := tag.ToTagResponse()
+	c.JSON(http.StatusOK, tagResponse)
 }
 
 // DeleteTag 删除标签

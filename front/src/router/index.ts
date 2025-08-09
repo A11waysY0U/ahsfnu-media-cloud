@@ -12,13 +12,13 @@ const router = createRouter({
       path: '/login',
       name: 'Login',
       component: () => import('@/views/Login.vue'),
-      meta: { requiresGuest: true }
+      meta: { requiresGuest: true, title: '登录 - AHSFNU 媒体云平台' }
     },
     {
       path: '/register',
       name: 'Register',
       component: () => import('@/views/Register.vue'),
-      meta: { requiresGuest: true }
+      meta: { requiresGuest: true, title: '注册 - AHSFNU 媒体云平台' }
     },
     {
       path: '/',
@@ -28,56 +28,64 @@ const router = createRouter({
         {
           path: 'dashboard',
           name: 'Dashboard',
-          component: () => import('@/views/Dashboard.vue')
+          component: () => import('@/views/Dashboard.vue'),
+          meta: { title: '仪表板 - AHSFNU 媒体云平台' }
         },
         {
           path: 'materials',
           name: 'Materials',
-          component: () => import('@/views/Materials.vue')
+          component: () => import('@/views/Materials.vue'),
+          meta: { title: '素材管理 - AHSFNU 媒体云平台' }
         },
         {
           path: 'materials/:id',
           name: 'MaterialDetail',
-          component: () => import('@/views/MaterialDetail.vue')
+          component: () => import('@/views/MaterialDetail.vue'),
+          meta: { title: '素材详情 - AHSFNU 媒体云平台' }
         },
         {
           path: 'tags',
           name: 'Tags',
-          component: () => import('@/views/Tags.vue')
+          component: () => import('@/views/Tags.vue'),
+          meta: { title: '标签管理 - AHSFNU 媒体云平台' }
         },
         {
           path: 'workflows',
           name: 'Workflows',
-          component: () => import('@/views/Workflows.vue')
+          component: () => import('@/views/Workflows.vue'),
+          meta: { title: '工作流管理 - AHSFNU 媒体云平台' }
         },
         {
           path: 'workflows/:id',
           name: 'WorkflowDetail',
-          component: () => import('@/views/WorkflowDetail.vue')
+          component: () => import('@/views/WorkflowDetail.vue'),
+          meta: { title: '工作流详情 - AHSFNU 媒体云平台' }
         },
         {
           path: 'profile',
           name: 'Profile',
-          component: () => import('@/views/Profile.vue')
+          component: () => import('@/views/Profile.vue'),
+          meta: { title: '个人资料 - AHSFNU 媒体云平台' }
         },
         {
           path: 'users',
           name: 'Users',
           component: () => import('@/views/Users.vue'),
-          meta: { requiresAdmin: true }
+          meta: { requiresAdmin: true, title: '用户管理 - AHSFNU 媒体云平台' }
         },
         {
           path: 'invite-codes',
           name: 'InviteCodes',
           component: () => import('@/views/InviteCodes.vue'),
-          meta: { requiresAdmin: true }
+          meta: { requiresAdmin: true, title: '邀请码管理 - AHSFNU 媒体云平台' }
         }
       ]
     },
     {
       path: '/:pathMatch(.*)*',
       name: 'NotFound',
-      component: () => import('@/views/NotFound.vue')
+      component: () => import('@/views/NotFound.vue'),
+      meta: { title: '页面未找到 - AHSFNU 媒体云平台' }
     }
   ]
 })
@@ -89,6 +97,13 @@ router.beforeEach((to, from, next) => {
   // 初始化认证状态
   if (!authStore.isAuthenticated) {
     authStore.initAuth()
+  }
+  
+  // 更新页面标题
+  if (to.meta.title) {
+    document.title = to.meta.title as string
+  } else {
+    document.title = 'AHSFNU 媒体云平台'
   }
   
   // 需要认证的页面

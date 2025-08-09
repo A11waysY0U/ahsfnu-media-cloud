@@ -27,8 +27,16 @@ func GetWorkflows(c *gin.Context) {
 		c.JSON(500, gin.H{"error": "获取工作流列表失败"})
 		return
 	}
+
+	// 转换为安全的响应格式
+	var workflowResponses []models.WorkflowGroupResponse
+	for i := range workflows {
+		workflowResponse := workflows[i].ToWorkflowGroupResponse()
+		workflowResponses = append(workflowResponses, *workflowResponse)
+	}
+
 	c.JSON(200, gin.H{
-		"data": workflows,
+		"data": workflowResponses,
 		"pagination": gin.H{
 			"page":      page,
 			"page_size": pageSize,
@@ -74,7 +82,10 @@ func CreateWorkflow(c *gin.Context) {
 	}
 
 	db.Preload("Creator").Preload("Members.User").First(&workflow, workflow.ID)
-	c.JSON(201, workflow)
+
+	// 转换为安全的响应格式
+	workflowResponse := workflow.ToWorkflowGroupResponse()
+	c.JSON(201, workflowResponse)
 }
 
 // 获取单个工作流详情
@@ -87,7 +98,10 @@ func GetWorkflow(c *gin.Context) {
 		c.JSON(404, gin.H{"error": "工作流不存在"})
 		return
 	}
-	c.JSON(200, workflow)
+
+	// 转换为安全的响应格式
+	workflowResponse := workflow.ToWorkflowGroupResponse()
+	c.JSON(200, workflowResponse)
 }
 
 // 更新工作流
@@ -142,7 +156,10 @@ func UpdateWorkflow(c *gin.Context) {
 		}
 	}
 	db.Preload("Creator").Preload("Members.User").First(&workflow, workflow.ID)
-	c.JSON(200, workflow)
+
+	// 转换为安全的响应格式
+	workflowResponse := workflow.ToWorkflowGroupResponse()
+	c.JSON(200, workflowResponse)
 }
 
 // 删除工作流
@@ -210,7 +227,11 @@ func AddWorkflowMember(c *gin.Context) {
 		c.JSON(500, gin.H{"error": "添加成员失败"})
 		return
 	}
-	c.JSON(200, member)
+
+	// 预加载用户信息并转换为安全的响应格式
+	db.Preload("User").First(&member, member.ID)
+	memberResponse := member.ToWorkflowMemberResponse()
+	c.JSON(200, memberResponse)
 }
 
 // 移除成员

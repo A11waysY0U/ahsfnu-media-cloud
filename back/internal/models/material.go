@@ -27,3 +27,59 @@ type Material struct {
 	Workflow     *WorkflowGroup `json:"workflow,omitempty" gorm:"foreignKey:WorkflowID"`
 	MaterialTags []MaterialTag  `json:"material_tags,omitempty" gorm:"foreignKey:MaterialID"`
 }
+
+// MaterialResponse 用于返回给前端的素材信息，包含安全的用户信息
+type MaterialResponse struct {
+	ID               uint      `json:"id"`
+	Filename         string    `json:"filename"`
+	OriginalFilename string    `json:"original_filename"`
+	FilePath         string    `json:"file_path"`
+	FileSize         int64     `json:"file_size"`
+	FileType         string    `json:"file_type"`
+	MimeType         string    `json:"mime_type"`
+	Width            *int      `json:"width,omitempty"`
+	Height           *int      `json:"height,omitempty"`
+	Duration         *int      `json:"duration,omitempty"`
+	UploadedBy       uint      `json:"uploaded_by"`
+	WorkflowID       *uint     `json:"workflow_id,omitempty"`
+	UploadTime       time.Time `json:"upload_time"`
+	IsStarred        bool      `json:"is_starred"`
+	IsPublic         bool      `json:"is_public"`
+	ThumbnailPath    string    `json:"thumbnail_path,omitempty"`
+
+	// 安全的关联关系
+	Uploader     *SafeUser      `json:"uploader,omitempty"`
+	Workflow     *WorkflowGroup `json:"workflow,omitempty"`
+	MaterialTags []MaterialTag  `json:"material_tags,omitempty"`
+}
+
+// ToMaterialResponse 将 Material 转换为 MaterialResponse
+func (m *Material) ToMaterialResponse() *MaterialResponse {
+	response := &MaterialResponse{
+		ID:               m.ID,
+		Filename:         m.Filename,
+		OriginalFilename: m.OriginalFilename,
+		FilePath:         m.FilePath,
+		FileSize:         m.FileSize,
+		FileType:         m.FileType,
+		MimeType:         m.MimeType,
+		Width:            m.Width,
+		Height:           m.Height,
+		Duration:         m.Duration,
+		UploadedBy:       m.UploadedBy,
+		WorkflowID:       m.WorkflowID,
+		UploadTime:       m.UploadTime,
+		IsStarred:        m.IsStarred,
+		IsPublic:         m.IsPublic,
+		ThumbnailPath:    m.ThumbnailPath,
+		Workflow:         m.Workflow,
+		MaterialTags:     m.MaterialTags,
+	}
+
+	// 安全地转换用户信息
+	if m.Uploader != nil {
+		response.Uploader = m.Uploader.ToSafeUser()
+	}
+
+	return response
+}

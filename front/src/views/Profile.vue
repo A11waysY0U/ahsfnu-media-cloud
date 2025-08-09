@@ -54,140 +54,6 @@
               </el-form-item>
             </el-form>
           </el-card>
-
-          <!-- 修改密码 -->
-          <el-card class="password-card" shadow="never">
-            <template #header>
-              <h3>修改密码</h3>
-            </template>
-
-            <el-form
-              ref="passwordFormRef"
-              :model="passwordForm"
-              :rules="passwordRules"
-              label-width="120px"
-            >
-              <el-form-item label="当前密码" prop="currentPassword">
-                <el-input
-                  v-model="passwordForm.currentPassword"
-                  type="password"
-                  show-password
-                  placeholder="请输入当前密码"
-                />
-              </el-form-item>
-              <el-form-item label="新密码" prop="newPassword">
-                <el-input
-                  v-model="passwordForm.newPassword"
-                  type="password"
-                  show-password
-                  placeholder="请输入新密码"
-                />
-              </el-form-item>
-              <el-form-item label="确认新密码" prop="confirmPassword">
-                <el-input
-                  v-model="passwordForm.confirmPassword"
-                  type="password"
-                  show-password
-                  placeholder="请再次输入新密码"
-                />
-              </el-form-item>
-              <el-form-item>
-                <el-button type="primary" @click="changePassword" :loading="changingPassword">
-                  修改密码
-                </el-button>
-              </el-form-item>
-            </el-form>
-          </el-card>
-        </el-col>
-
-        <!-- 右侧：统计信息 -->
-        <el-col :xs="24" :lg="8">
-          <el-card class="stats-card" shadow="never">
-            <template #header>
-              <h3>账户统计</h3>
-            </template>
-
-            <div class="stats-list">
-              <div class="stat-item">
-                <div class="stat-icon">
-                  <el-icon :size="24" color="#409EFF">
-                    <Picture />
-                  </el-icon>
-                </div>
-                <div class="stat-content">
-                  <div class="stat-value">{{ stats.totalMaterials }}</div>
-                  <div class="stat-label">上传素材</div>
-                </div>
-              </div>
-
-              <div class="stat-item">
-                <div class="stat-icon">
-                  <el-icon :size="24" color="#67C23A">
-                    <Star />
-                  </el-icon>
-                </div>
-                <div class="stat-content">
-                  <div class="stat-value">{{ stats.starredMaterials }}</div>
-                  <div class="stat-label">星标素材</div>
-                </div>
-              </div>
-
-              <div class="stat-item">
-                <div class="stat-icon">
-                  <el-icon :size="24" color="#E6A23C">
-                    <Collection />
-                  </el-icon>
-                </div>
-                <div class="stat-content">
-                  <div class="stat-value">{{ stats.totalTags }}</div>
-                  <div class="stat-label">创建标签</div>
-                </div>
-              </div>
-
-              <div class="stat-item">
-                <div class="stat-icon">
-                  <el-icon :size="24" color="#F56C6C">
-                    <Operation />
-                  </el-icon>
-                </div>
-                <div class="stat-content">
-                  <div class="stat-value">{{ stats.totalWorkflows }}</div>
-                  <div class="stat-label">工作流</div>
-                </div>
-              </div>
-            </div>
-          </el-card>
-
-          <!-- 最近活动 -->
-          <el-card class="activity-card" shadow="never">
-            <template #header>
-              <h3>最近活动</h3>
-            </template>
-
-            <div class="activity-list">
-              <div
-                v-for="activity in recentActivities"
-                :key="activity.id"
-                class="activity-item"
-              >
-                <div class="activity-icon">
-                  <el-icon :size="16" :color="activity.color">
-                    <component :is="activity.icon" />
-                  </el-icon>
-                </div>
-                <div class="activity-content">
-                  <div class="activity-text">{{ activity.text }}</div>
-                  <div class="activity-time">{{ formatTime(activity.time) }}</div>
-                </div>
-              </div>
-
-              <el-empty
-                v-if="recentActivities.length === 0"
-                description="暂无活动记录"
-                :image-size="80"
-              />
-            </div>
-          </el-card>
         </el-col>
       </el-row>
     </div>
@@ -218,11 +84,22 @@ const stats = ref({
 const profileFormRef = ref()
 const passwordFormRef = ref()
 
+// 计算属性
+const user = computed(() => authStore.user)
+
 // 表单数据
 const profileForm = reactive({
   username: '',
   email: '',
 })
+
+// 初始化表单数据
+const initializeProfileForm = () => {
+  if (user.value) {
+    profileForm.username = user.value.username
+    profileForm.email = user.value.email
+  }
+}
 
 const passwordForm = reactive({
   currentPassword: '',
@@ -265,34 +142,6 @@ const passwordRules = {
   ],
 }
 
-// 计算属性
-const user = computed(() => authStore.user)
-
-// 模拟最近活动数据
-const recentActivities = ref([
-  {
-    id: 1,
-    text: '上传了图片素材 "banner.jpg"',
-    time: new Date(Date.now() - 1000 * 60 * 30), // 30分钟前
-    icon: Upload,
-    color: '#409EFF',
-  },
-  {
-    id: 2,
-    text: '创建了标签 "设计素材"',
-    time: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2小时前
-    icon: EditPen,
-    color: '#67C23A',
-  },
-  {
-    id: 3,
-    text: '删除了视频素材 "intro.mp4"',
-    time: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1天前
-    icon: Delete,
-    color: '#F56C6C',
-  },
-])
-
 // 方法
 const loadStats = async () => {
   try {
@@ -300,17 +149,18 @@ const loadStats = async () => {
     const materialsResponse = await materialAPI.getList({ page: 1, page_size: 1 })
     stats.value.totalMaterials = materialsResponse.data.pagination?.total || 0
 
-    // 加载星标素材统计
-    const starredResponse = await materialAPI.getList({ page: 1, page_size: 1, is_starred: true })
-    stats.value.starredMaterials = starredResponse.data.pagination?.total || 0
+    // 加载星标素材统计（暂时注释掉，因为API不支持is_starred参数）
+    // const starredResponse = await materialAPI.getList({ page: 1, page_size: 1, is_starred: true })
+    // stats.value.starredMaterials = starredResponse.data.pagination?.total || 0
+    stats.value.starredMaterials = 0 // 暂时设为0
 
     // 加载标签统计
     const tagsResponse = await tagAPI.getList()
-    stats.value.totalTags = tagsResponse.data.data.length
+    stats.value.totalTags = Array.isArray(tagsResponse.data) ? tagsResponse.data.length : 0
 
     // 加载工作流统计
     const workflowsResponse = await workflowAPI.getList()
-    stats.value.totalWorkflows = workflowsResponse.data.data.length
+    stats.value.totalWorkflows = workflowsResponse.data.data?.length || 0
   } catch (error) {
     console.error('加载统计信息失败:', error)
   }
@@ -404,6 +254,7 @@ const formatTime = (date: Date) => {
 // 生命周期
 onMounted(() => {
   loadStats()
+  initializeProfileForm()
 })
 </script>
 

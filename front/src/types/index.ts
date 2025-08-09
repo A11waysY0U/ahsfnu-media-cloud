@@ -37,6 +37,8 @@ export interface Tag {
   id: number
   name: string
   color: string
+  description?: string
+  material_count?: number
   created_by: number
   created_at: string
   creator?: User
@@ -86,6 +88,9 @@ export interface InviteCode {
   created_by: number
   used_by?: number
   created_at: string
+  used_at?: string
+  creator?: User
+  user?: User
 }
 
 // 认证相关类型

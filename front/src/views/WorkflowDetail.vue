@@ -398,7 +398,11 @@ const loadWorkflow = async () => {
 const loadUsers = async () => {
   try {
     const response = await userAPI.getList()
-    allUsers.value = response.data
+    if (response.data && 'data' in response.data) {
+      allUsers.value = response.data.data || []
+    } else {
+      allUsers.value = Array.isArray(response.data) ? response.data : []
+    }
   } catch (error) {
     ElMessage.error('加载用户列表失败')
   }
@@ -478,7 +482,15 @@ const addMember = async () => {
     await memberFormRef.value?.validate()
     addingMember.value = true
     
-    await workflowAPI.addMember(workflowId.value, memberForm)
+    if (memberForm.user_id === null) {
+      ElMessage.error('请选择用户')
+      return
+    }
+    
+    await workflowAPI.addMember(workflowId.value, {
+      user_id: memberForm.user_id,
+      role: memberForm.role
+    })
     ElMessage.success('添加成员成功')
     showAddMemberDialog.value = false
     memberForm.user_id = null

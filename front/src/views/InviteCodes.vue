@@ -145,12 +145,14 @@
         </el-table-column>
         <el-table-column label="创建者" width="120">
           <template #default="{ row }">
-            <span>{{ getCreatorName(row.created_by) }}</span>
+            <span v-if="row.creator">{{ row.creator.username }}</span>
+            <span v-else>{{ getCreatorName(row.created_by) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="使用者" width="120">
           <template #default="{ row }">
-            <span v-if="row.used_by">{{ getUsedByUserName(row.used_by) }}</span>
+            <span v-if="row.user">{{ row.user.username }}</span>
+            <span v-else-if="row.used_by">{{ getUsedByUserName(row.used_by) }}</span>
             <span v-else class="no-user">未使用</span>
           </template>
         </el-table-column>
@@ -291,9 +293,17 @@ const loadInviteCodes = async () => {
     }
     
     const response = await inviteCodeAPI.getList(params)
-    inviteCodes.value = response.data.data
-    total.value = response.data.pagination?.total || 0
+    // 后端现在返回分页格式
+    if (response.data && 'data' in response.data) {
+      inviteCodes.value = response.data.data || []
+      total.value = response.data.pagination?.total || 0
+    } else {
+      // 兼容旧格式
+      inviteCodes.value = Array.isArray(response.data) ? response.data : []
+      total.value = inviteCodes.value.length
+    }
   } catch (error) {
+    console.error('加载邀请码列表失败:', error)
     ElMessage.error('加载邀请码列表失败')
   } finally {
     loading.value = false
@@ -303,7 +313,13 @@ const loadInviteCodes = async () => {
 const loadUsers = async () => {
   try {
     const response = await userAPI.getList({ page: 1, page_size: 1000 })
-    users.value = response.data
+    // 后端现在返回分页格式
+    if (response.data && 'data' in response.data) {
+      users.value = response.data.data || []
+    } else {
+      // 兼容旧格式
+      users.value = Array.isArray(response.data) ? response.data : []
+    }
   } catch (error) {
     console.error('加载用户列表失败:', error)
   }
@@ -312,7 +328,11 @@ const loadUsers = async () => {
 const loadStats = async () => {
   try {
     const response = await inviteCodeAPI.getStats()
-    stats.value = response.data
+    if (response.data && response.data.data) {
+      stats.value = response.data.data
+    } else {
+      console.error('统计数据结构不正确:', response)
+    }
   } catch (error) {
     console.error('加载统计信息失败:', error)
   }
@@ -405,11 +425,25 @@ const copyCode = async (code: string) => {
 }
 
 const getCreatorName = (creatorId: number) => {
+  // 首先尝试从邀请码对象中获取creator信息
+  const inviteCode = inviteCodes.value.find(code => code.created_by === creatorId)
+  if (inviteCode?.creator) {
+    return inviteCode.creator.username
+  }
+  
+  // 如果邀请码对象中没有creator信息，则从users数组中查找
   const creator = users.value.find(user => user.id === creatorId)
   return creator ? creator.username : `用户${creatorId}`
 }
 
 const getUsedByUserName = (userId: number) => {
+  // 首先尝试从邀请码对象中获取user信息
+  const inviteCode = inviteCodes.value.find(code => code.used_by === userId)
+  if (inviteCode?.user) {
+    return inviteCode.user.username
+  }
+  
+  // 如果邀请码对象中没有user信息，则从users数组中查找
   const user = users.value.find(user => user.id === userId)
   return user ? user.username : `用户${userId}`
 }

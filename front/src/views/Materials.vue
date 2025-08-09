@@ -154,15 +154,19 @@
               <div class="material-meta">
                 <span class="file-size">{{ formatFileSize(material.file_size) }}</span>
                 <span class="upload-time">{{ formatDate(material.upload_time) }}</span>
+                <span class="uploader" v-if="material.uploader">
+                  <el-icon><User /></el-icon>
+                  {{ material.uploader.username }}
+                </span>
               </div>
               <div class="material-tags" v-if="material.material_tags?.length">
                 <el-tag
                   v-for="tag in material.material_tags.slice(0, 2)"
-                  :key="tag.tag.id"
+                  :key="tag.tag?.id || tag.id"
                   size="small"
                   class="tag-item"
                 >
-                  {{ tag.tag.name }}
+                  {{ tag.tag?.name || '未知标签' }}
                 </el-tag>
                 <el-tag
                   v-if="material.material_tags.length > 2"
@@ -357,6 +361,7 @@ import {
   View,
   VideoPlay,
   UploadFilled,
+  User,
 } from '@element-plus/icons-vue'
 import type { Material, Tag, WorkflowGroup } from '@/types'
 import { materialAPI, tagAPI, workflowAPI } from '@/api'
@@ -424,14 +429,13 @@ const loadMaterials = async () => {
       page_size: pageSize.value,
       keyword: filters.keyword || undefined,
       file_type: filters.fileType || undefined,
-      is_starred: filters.isStarred,
-      workflow_id: filters.workflowId,
-      tag_ids: filters.tagIds.length > 0 ? filters.tagIds : undefined,
+      workflow_id: filters.workflowId || undefined,
+      tags: filters.tagIds.length > 0 ? filters.tagIds.join(',') : undefined,
     }
     
     const response = await materialAPI.getList(params)
-    materials.value = response.data.data
-    total.value = response.data.total
+    materials.value = response.data.data || []
+    total.value = response.data.pagination?.total || 0
   } catch (error) {
     ElMessage.error('加载素材失败')
   } finally {
@@ -442,7 +446,7 @@ const loadMaterials = async () => {
 const loadTags = async () => {
   try {
     const response = await tagAPI.getList()
-    tags.value = response.data.data
+    tags.value = response.data || []
   } catch (error) {
     ElMessage.error('加载标签失败')
   }
@@ -478,8 +482,8 @@ const viewMaterial = (material: Material) => {
   editForm.original_filename = material.original_filename
   editForm.is_starred = material.is_starred
   editForm.is_public = material.is_public
-  editForm.workflow_id = material.workflow_id
-  editForm.tag_ids = material.material_tags?.map(mt => mt.tag.id) || []
+  editForm.workflow_id = material.workflow_id || null
+  editForm.tag_ids = material.material_tags?.map(mt => mt.tag?.id).filter((id): id is number => id !== undefined) || []
   showDetailDialog.value = true
 }
 
@@ -568,7 +572,7 @@ const submitUpload = () => {
 const getMaterialUrl = (material: Material) => {
   return material.file_path.startsWith('http') 
     ? material.file_path 
-    : `/uploads${material.file_path}`
+    : `${material.file_path}`
 }
 
 const formatFileSize = (bytes: number) => {
@@ -716,10 +720,28 @@ onMounted(() => {
 
 .material-meta {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 4px;
   margin-bottom: 8px;
   font-size: 12px;
   color: #666;
+}
+
+.material-meta .file-size,
+.material-meta .upload-time,
+.material-meta .uploader {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.material-meta .uploader {
+  color: #409eff;
+  font-weight: 500;
+}
+
+.material-meta .uploader .el-icon {
+  font-size: 12px;
 }
 
 .material-tags {

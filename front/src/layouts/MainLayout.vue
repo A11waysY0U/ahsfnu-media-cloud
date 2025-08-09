@@ -3,8 +3,8 @@
     <!-- 侧边栏 -->
     <el-aside width="250px" class="sidebar">
       <div class="logo">
-        <img src="/logo.svg" alt="Logo" class="logo-img" />
-        <span class="logo-text">媒体云平台</span>
+        <img src="/7e0166f4fbd49a09a4f1beeee6a09d20.jpg" alt="Logo" class="logo-img" />
+        <span class="logo-text">AHSFNU 媒体云平台</span>
       </div>
       
       <el-menu

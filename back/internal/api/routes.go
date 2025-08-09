@@ -46,6 +46,7 @@ func SetupRoutes(r *gin.Engine) {
 		}
 		protected.POST("/invite_codes", auth.GenerateInviteCodes)
 		protected.GET("/invite_codes", auth.ListInviteCodes)
+		protected.GET("/invite_codes/stats", auth.GetInviteCodeStats)
 		// 用户相关
 		protected.GET("/profile", auth.GetProfile)
 		protected.PUT("/profile", auth.UpdateProfile)

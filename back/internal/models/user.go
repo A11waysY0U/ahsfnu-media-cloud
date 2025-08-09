@@ -22,3 +22,25 @@ type User struct {
 	Inviter         *User            `json:"inviter,omitempty" gorm:"foreignKey:InviterID"`
 	Invitees        []User           `json:"invitees,omitempty" gorm:"foreignKey:InviterID"`
 }
+
+// SafeUser 安全的用户信息结构体，用于返回给前端，不包含敏感信息
+type SafeUser struct {
+	ID        uint      `json:"id"`
+	Username  string    `json:"username"`
+	Email     string    `json:"email"`
+	Role      string    `json:"role"`
+	InviterID *uint     `json:"inviter_id,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// ToSafeUser 将 User 转换为 SafeUser
+func (u *User) ToSafeUser() *SafeUser {
+	return &SafeUser{
+		ID:        u.ID,
+		Username:  u.Username,
+		Email:     u.Email,
+		Role:      u.Role,
+		InviterID: u.InviterID,
+		CreatedAt: u.CreatedAt,
+	}
+}

@@ -163,12 +163,12 @@
             <div class="tags-display">
               <el-tag
                 v-for="materialTag in material.material_tags"
-                :key="materialTag.tag.id"
-                :color="materialTag.tag.color"
+                :key="materialTag.tag?.id || materialTag.id"
+                :color="materialTag.tag?.color || '#409EFF'"
                 effect="dark"
                 class="material-tag"
               >
-                {{ materialTag.tag.name }}
+                {{ materialTag.tag?.name || '未知标签' }}
               </el-tag>
               <el-empty
                 v-if="!material.material_tags?.length"
@@ -183,7 +183,7 @@
 
     <!-- 图片查看器 -->
     <el-image-viewer
-      v-if="showImageViewer"
+      v-if="showImageViewer && material"
       :url-list="[getMaterialUrl(material)]"
       :initial-index="0"
       @close="showImageViewer = false"
@@ -270,8 +270,8 @@ const updateForm = () => {
     form.original_filename = material.value.original_filename
     form.is_starred = material.value.is_starred
     form.is_public = material.value.is_public
-    form.workflow_id = material.value.workflow_id
-    form.tag_ids = material.value.material_tags?.map(mt => mt.tag.id) || []
+    form.workflow_id = material.value.workflow_id || null
+    form.tag_ids = material.value.material_tags?.map(mt => mt.tag?.id).filter((id): id is number => id !== undefined) || []
   }
 }
 

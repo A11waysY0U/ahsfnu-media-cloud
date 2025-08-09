@@ -4,6 +4,7 @@ import (
 	"ahsfnu-media-cloud/internal/database"
 	"ahsfnu-media-cloud/internal/models"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -71,10 +72,43 @@ func GetUsers(c *gin.Context) {
 		return
 	}
 	db := database.GetDB()
+
+	// 获取查询参数
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "20"))
+	keyword := c.Query("keyword")
+	roleFilter := c.Query("role")
+
+	query := db.Model(&models.User{})
+
+	// 添加搜索条件
+	if keyword != "" {
+		query = query.Where("username ILIKE ? OR email ILIKE ?", "%"+keyword+"%", "%"+keyword+"%")
+	}
+
+	// 添加角色筛选
+	if roleFilter != "" {
+		query = query.Where("role = ?", roleFilter)
+	}
+
+	var total int64
+	query.Count(&total)
+
+	// 分页
+	offset := (page - 1) * pageSize
 	var users []models.User
-	if err := db.Preload("Inviter").Find(&users).Error; err != nil {
+	err := query.Preload("Inviter").Offset(offset).Limit(pageSize).Order("created_at DESC").Find(&users).Error
+	if err != nil {
 		c.JSON(500, gin.H{"error": "获取用户列表失败"})
 		return
 	}
-	c.JSON(200, users)
+
+	c.JSON(200, gin.H{
+		"data": users,
+		"pagination": gin.H{
+			"page":      page,
+			"page_size": pageSize,
+			"total":     total,
+		},
+	})
 }

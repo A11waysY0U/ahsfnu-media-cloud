@@ -200,8 +200,8 @@ export const workflowAPI = {
 // 用户管理API（管理员）
 export const userAPI = {
   // 获取用户列表
-  getList: (params?: { page?: number; page_size?: number }) => 
-    api.get<User[]>('/users', { params }),
+  getList: (params?: { page?: number; page_size?: number; keyword?: string; role?: string }) => 
+    api.get<ApiResponse<User[]>>('/users', { params }),
   
   // 更新用户角色
   updateRole: (id: number, role: 'admin' | 'user') =>
@@ -222,10 +222,12 @@ export const inviteCodeAPI = {
   
   // 获取邀请码统计信息
   getStats: () => api.get<{
-    total: number
-    unused: number
-    used: number
-    expired: number
+    data: {
+      total: number
+      unused: number
+      used: number
+      expired: number
+    }
   }>('/invite_codes/stats'),
   
   // 删除邀请码
