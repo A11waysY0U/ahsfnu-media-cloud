@@ -138,7 +138,7 @@ export const materialAPI = {
   }) => api.get<ApiResponse<Material[]>>('/materials', { params }),
   
   // 获取素材详情
-  getDetail: (id: number) => api.get<Material>(`/materials/${id}`),
+  getDetail: (id: number) => api.get<ApiResponse<Material>>(`/materials/${id}`),
   
   // 更新素材
   update: (id: number, data: {

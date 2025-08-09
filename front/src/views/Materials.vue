@@ -107,7 +107,7 @@
             <div class="material-preview">
               <img
                 v-if="material.file_type === 'image'"
-                :src="getMaterialUrl(material)"
+                :src="getThumbnailUrl(material)"
                 :alt="material.original_filename"
                 class="preview-image"
               />
@@ -127,6 +127,16 @@
                     @click.stop="viewMaterial(material)"
                   >
                     <el-icon><View /></el-icon>
+                  </el-button>
+                  <el-button
+                    v-if="material.file_type === 'image'"
+                    type="success"
+                    size="small"
+                    circle
+                    @click.stop="downloadOriginal(material)"
+                    title="下载原图"
+                  >
+                    <el-icon><Download /></el-icon>
                   </el-button>
                   <el-button
                     :type="material.is_starred ? 'warning' : 'default'"
@@ -353,15 +363,17 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import {
-  Plus,
-  Search,
-  Star,
-  Delete,
-  View,
-  VideoPlay,
+import { 
+  Plus, 
+  Search, 
+  View, 
+  Star, 
+  Delete, 
+  Edit, 
+  VideoPlay, 
   UploadFilled,
   User,
+  Download,
 } from '@element-plus/icons-vue'
 import type { Material, Tag, WorkflowGroup } from '@/types'
 import { materialAPI, tagAPI, workflowAPI } from '@/api'
@@ -607,6 +619,32 @@ const getMaterialUrl = (material: Material) => {
   }
   
   return `/uploads/${material.file_path}`
+}
+
+const getThumbnailUrl = (material: Material) => {
+  if (!material.thumbnail_path) {
+    // 如果没有缩略图，返回原图
+    return getMaterialUrl(material)
+  }
+  
+  if (material.thumbnail_path.startsWith('http')) {
+    return material.thumbnail_path
+  }
+  if (material.thumbnail_path.startsWith('/')) {
+    return material.thumbnail_path
+  }
+  return `/uploads/${material.thumbnail_path}`
+}
+
+const downloadOriginal = (material: Material) => {
+  const url = getMaterialUrl(material)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = material.original_filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  ElMessage.success('开始下载原图')
 }
 
 const formatFileSize = (bytes: number) => {

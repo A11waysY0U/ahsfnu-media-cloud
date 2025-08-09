@@ -86,7 +86,7 @@
               <div class="material-preview">
                 <img
                   v-if="material.file_type === 'image'"
-                  :src="material.file_path"
+                  :src="getThumbnailUrl(material)"
                   :alt="material.original_filename"
                   class="material-image"
                 />
@@ -205,7 +205,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { UploadFile, UploadFiles } from 'element-plus'
-import { materialAPI } from '@/api'
+import { materialAPI, tagAPI, workflowAPI } from '@/api'
 import type { Material } from '@/types'
 
 const router = useRouter()
@@ -230,14 +230,22 @@ const uploadRef = ref()
 // 获取统计数据
 const fetchStats = async () => {
   try {
-    const response = await materialAPI.getList({ page: 1, page_size: 1 })
-    stats.totalMaterials = response.data.pagination?.total || 0
+    // 获取总素材数
+    const materialsResponse = await materialAPI.getList({ page: 1, page_size: 1 })
+    stats.totalMaterials = materialsResponse.data.pagination?.total || 0
     
-    // 这里可以添加其他统计数据的API调用
-    // 暂时使用模拟数据
-    stats.starredMaterials = Math.floor(stats.totalMaterials * 0.3)
-    stats.totalTags = 15
-    stats.totalWorkflows = 8
+    // 获取收藏素材数 - 通过获取所有素材并过滤
+    const allMaterialsResponse = await materialAPI.getList({ page: 1, page_size: 1000 })
+    const allMaterials = allMaterialsResponse.data.data || []
+    stats.starredMaterials = allMaterials.filter(material => material.is_starred).length
+    
+    // 获取标签数量
+    const tagsResponse = await tagAPI.getList()
+    stats.totalTags = Array.isArray(tagsResponse.data.data) ? tagsResponse.data.data.length : 0
+    
+    // 获取工作流数量
+    const workflowsResponse = await workflowAPI.getList({ page: 1, page_size: 1 })
+    stats.totalWorkflows = workflowsResponse.data.pagination?.total || 0
   } catch (error) {
     console.error('获取统计数据失败:', error)
   }
@@ -306,6 +314,24 @@ const handleUpload = async () => {
   } finally {
     uploading.value = false
   }
+}
+
+// 获取缩略图URL
+const getThumbnailUrl = (material: Material) => {
+  if (!material.thumbnail_path) {
+    // 如果没有缩略图，返回原图
+    return material.file_path.startsWith('http') ? material.file_path : `/uploads/${material.file_path}`
+  }
+  
+  if (material.thumbnail_path.startsWith('http')) {
+    return material.thumbnail_path
+  }
+  
+  if (material.thumbnail_path.startsWith('/')) {
+    return material.thumbnail_path
+  }
+  
+  return `/uploads/${material.thumbnail_path}`
 }
 
 onMounted(() => {
