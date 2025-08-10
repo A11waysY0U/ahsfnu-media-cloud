@@ -10,6 +10,7 @@ desktop.ini
 
 # ==================== 编辑器和IDE ====================
 .vscode/
+.vs/
 .idea/
 *.swp
 *.swo

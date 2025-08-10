@@ -155,21 +155,25 @@ AHSFNU 媒体云平台提供了一套完整的 RESTful API，用于管理用户�
 **响应格式**:
 ```json
 {
-  "data": {
+  "id": 1,
+  "filename": "string",
+  "original_filename": "string",
+  "file_path": "string",
+  "file_size": 1024,
+  "file_type": "string",
+  "mime_type": "string",
+  "width": 1920,
+  "height": 1080,
+  "duration": 120,
+  "uploaded_by": 1,
+  "upload_time": "2024-01-01T00:00:00Z",
+  "is_starred": false,
+  "is_public": false,
+  "workflow_id": null,
+  "thumbnail_path": "string",
+  "uploader": {
     "id": 1,
-    "original_filename": "string",
-    "file_path": "string",
-    "file_size": 1024,
-    "file_type": "string",
-    "uploaded_by": 1,
-    "upload_time": "2024-01-01T00:00:00Z",
-    "is_starred": false,
-    "is_public": false,
-    "workflow_id": null,
-    "uploader": {
-      "id": 1,
-      "username": "string"
-    }
+    "username": "string"
   }
 }
 ```
@@ -198,15 +202,21 @@ AHSFNU 媒体云平台提供了一套完整的 RESTful API，用于管理用户�
 {
   "data": {
     "id": 1,
+    "filename": "string",
     "original_filename": "string",
     "file_path": "string",
     "file_size": 1024,
     "file_type": "string",
+    "mime_type": "string",
+    "width": 1920,
+    "height": 1080,
+    "duration": 120,
     "uploaded_by": 1,
     "upload_time": "2024-01-01T00:00:00Z",
     "is_starred": false,
     "is_public": false,
     "workflow_id": null,
+    "thumbnail_path": "string",
     "uploader": {
       "id": 1,
       "username": "string"
@@ -235,31 +245,35 @@ AHSFNU 媒体云平台提供了一套完整的 RESTful API，用于管理用户�
 **响应格式**:
 ```json
 {
-  "data": {
+  "id": 1,
+  "filename": "string",
+  "original_filename": "string",
+  "file_path": "string",
+  "file_size": 1024,
+  "file_type": "string",
+  "mime_type": "string",
+  "width": 1920,
+  "height": 1080,
+  "duration": 120,
+  "uploaded_by": 1,
+  "upload_time": "2024-01-01T00:00:00Z",
+  "is_starred": false,
+  "is_public": false,
+  "workflow_id": null,
+  "thumbnail_path": "string",
+  "uploader": {
     "id": 1,
-    "original_filename": "string",
-    "file_path": "string",
-    "file_size": 1024,
-    "file_type": "string",
-    "uploaded_by": 1,
-    "upload_time": "2024-01-01T00:00:00Z",
-    "is_starred": false,
-    "is_public": false,
-    "workflow_id": null,
-    "uploader": {
-      "id": 1,
-      "username": "string"
-    },
-    "material_tags": [
-      {
-        "tag": {
-          "id": 1,
-          "name": "string",
-          "color": "string"
-        }
+    "username": "string"
+  },
+  "material_tags": [
+    {
+      "tag": {
+        "id": 1,
+        "name": "string",
+        "color": "string"
       }
-    ]
-  }
+    }
+  ]
 }
 ```
 
@@ -274,9 +288,7 @@ AHSFNU 媒体云平台提供了一套完整的 RESTful API，用于管理用户�
 **响应格式**:
 ```json
 {
-  "data": {
-    "message": "素材删除成功"
-  }
+  "message": "素材删除成功"
 }
 ```
 
@@ -302,15 +314,21 @@ AHSFNU 媒体云平台提供了一套完整的 RESTful API，用于管理用户�
   "data": [
     {
       "id": 1,
+      "filename": "string",
       "original_filename": "string",
       "file_path": "string",
       "file_size": 1024,
       "file_type": "string",
+      "mime_type": "string",
+      "width": 1920,
+      "height": 1080,
+      "duration": 120,
       "uploaded_by": 1,
       "upload_time": "2024-01-01T00:00:00Z",
       "is_starred": false,
       "is_public": false,
       "workflow_id": null,
+      "thumbnail_path": "string",
       "uploader": {
         "id": 1,
         "username": "string"
@@ -324,8 +342,6 @@ AHSFNU 媒体云平台提供了一套完整的 RESTful API，用于管理用户�
   }
 }
 ```
-
-
 
 ---
 
@@ -443,8 +459,6 @@ AHSFNU 媒体云平台提供了一套完整的 RESTful API，用于管理用户�
 }
 ```
 
-
-
 ---
 
 ## 工作流管理 API
@@ -470,6 +484,10 @@ AHSFNU 媒体云平台提供了一套完整的 RESTful API，用于管理用户�
       "id": 1,
       "name": "string",
       "description": "string",
+      "type": "string",
+      "color": "string",
+      "is_active": true,
+      "config": "string",
       "status": "string",
       "created_by": 1,
       "created_at": "2024-01-01T00:00:00Z",
@@ -510,6 +528,10 @@ AHSFNU 媒体云平台提供了一套完整的 RESTful API，用于管理用户�
 {
   "name": "string (必需)",
   "description": "string (可选)",
+  "type": "string (可选，默认custom)",
+  "color": "string (可选，默认#409EFF)",
+  "is_active": true/false (可选，默认true)",
+  "config": "string (可选)",
   "members": [1, 2, 3] (可选，用户ID数组)
 }
 ```
@@ -520,6 +542,10 @@ AHSFNU 媒体云平台提供了一套完整的 RESTful API，用于管理用户�
   "id": 1,
   "name": "string",
   "description": "string",
+  "type": "custom",
+  "color": "#409EFF",
+  "is_active": true,
+  "config": "string",
   "status": "active",
   "created_by": 1,
   "created_at": "2024-01-01T00:00:00Z",
@@ -554,6 +580,10 @@ AHSFNU 媒体云平台提供了一套完整的 RESTful API，用于管理用户�
   "id": 1,
   "name": "string",
   "description": "string",
+  "type": "string",
+  "color": "string",
+  "is_active": true,
+  "config": "string",
   "status": "string",
   "created_by": 1,
   "created_at": "2024-01-01T00:00:00Z",
@@ -587,6 +617,10 @@ AHSFNU 媒体云平台提供了一套完整的 RESTful API，用于管理用户�
 {
   "name": "string (可选)",
   "description": "string (可选)",
+  "type": "string (可选)",
+  "color": "string (可选)",
+  "is_active": true/false (可选)",
+  "config": "string (可选)",
   "members": [1, 2, 3] (可选，用户ID数组)
 }
 ```
@@ -597,6 +631,10 @@ AHSFNU 媒体云平台提供了一套完整的 RESTful API，用于管理用户�
   "id": 1,
   "name": "string",
   "description": "string",
+  "type": "string",
+  "color": "string",
+  "is_active": true,
+  "config": "string",
   "status": "string",
   "created_by": 1,
   "created_at": "2024-01-01T00:00:00Z",
@@ -885,22 +923,75 @@ AHSFNU 媒体云平台提供了一套完整的 RESTful API，用于管理用户�
 }
 ```
 
+### 3. 获取邀请码统计信息 (管理员)
+
+**接口**: `GET /invite_codes/stats`
+
+**描述**: 获取邀请码统计信息 (仅管理员)
+
+**认证**: 需要JWT token (管理员权限)
+
+**响应格式**:
+```json
+{
+  "data": {
+    "total": 100,
+    "unused": 50,
+    "used": 50,
+    "expired": 10
+  }
+}
+```
+
 ---
 
 ## 通用响应格式
 
 ### 成功响应
 
-所有成功响应都遵循以下格式：
+成功响应格式分为以下几种：
 
+1. **单个对象响应**：直接返回对象本身
 ```json
 {
-  "data": "响应数据",
+  "id": 1,
+  "name": "string",
+  "created_at": "2024-01-01T00:00:00Z"
+}
+```
+
+2. **列表响应**：包装在data字段中
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "name": "string"
+    }
+  ],
   "pagination": {
     "page": 1,
     "page_size": 20,
     "total": 100
   }
+}
+```
+
+3. **统计信息响应**：包装在data字段中
+```json
+{
+  "data": {
+    "total": 100,
+    "unused": 50,
+    "used": 50
+  }
+}
+```
+
+4. **消息响应**：直接返回消息对象
+```json
+{
+  "message": "操作成功"
 }
 ```
 
@@ -959,4 +1050,6 @@ GET /uploads/{filename}
 
 ## 更新日志
 
+- **v1.0.2**: 修正响应格式，确保与实际代码实现一致
+- **v1.0.1**: 修正API路径，补充邀请码统计接口，更新响应格式
 - **v1.0.0**: 初始版本，包含基础的用户、素材、标签、工作流管理功能
