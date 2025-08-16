@@ -12,6 +12,7 @@ type Config struct {
 	Database DatabaseConfig
 	JWT      JWTConfig
 	Upload   UploadConfig
+	HMAC     HMACConfig
 }
 
 type ServerConfig struct {
@@ -37,6 +38,10 @@ type UploadConfig struct {
 	MaxFileSize  int64
 	AllowedTypes []string
 	UploadPath   string
+}
+
+type HMACConfig struct {
+	SecretKey string
 }
 
 var AppConfig *Config
@@ -68,6 +73,9 @@ func Init() {
 			MaxFileSize:  100 * 1024 * 1024, // 100MB
 			AllowedTypes: []string{".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".mp4", ".mov", ".avi", ".wmv", ".flv", ".mkv", ".webm"},
 			UploadPath:   getEnv("UPLOAD_PATH", "./uploads"),
+		},
+		HMAC: HMACConfig{
+			SecretKey: getEnv("HMAC_SECRET", "your-hmac-secret-key"),
 		},
 	}
 }

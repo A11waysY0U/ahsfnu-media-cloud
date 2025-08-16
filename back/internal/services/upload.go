@@ -1,6 +1,7 @@
 package services
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -15,6 +16,7 @@ import (
 	"github.com/disintegration/imaging"
 	"github.com/google/uuid"
 	"github.com/h2non/filetype"
+	ffmpeg "github.com/u2takey/ffmpeg-go"
 )
 
 type UploadService struct {
@@ -95,13 +97,19 @@ func (s *UploadService) UploadFile(file *multipart.FileHeader, userID uint, work
 		WorkflowID:       workflowID,
 	}
 
-	// 如果是图片，生成缩略图
+	// 如果是图片或视频，生成缩略图
 	if fileType == "image" {
 		thumbName := "thumb_" + filename
 		thumbPath := filepath.Join(fullPath, thumbName)
 		thumbRelPath := filepath.Join(datePath, thumbName)
-		err := generateThumbnail(filePath, thumbPath)
-		if err == nil {
+		if err := generateThumbnail(filePath, thumbPath); err == nil {
+			material.ThumbnailPath = thumbRelPath
+		}
+	} else if fileType == "video" {
+		thumbName := "thumb_" + strings.TrimSuffix(filename, ext) + ".jpg"
+		thumbPath := filepath.Join(fullPath, thumbName)
+		thumbRelPath := filepath.Join(datePath, thumbName)
+		if err := generateVideoThumbnail(filePath, thumbPath); err == nil {
 			material.ThumbnailPath = thumbRelPath
 		}
 	}
@@ -180,9 +188,48 @@ func generateThumbnail(srcPath, dstPath string) error {
 	return imaging.Save(thumb, dstPath)
 }
 
+// 生成视频缩略图（依赖系统已安装 ffmpeg）
+func generateVideoThumbnail(srcPath, dstPath string) error {
+	// 优先尝试直接输出到文件，显式指定图像格式与编码器
+	primaryErr := ffmpeg.Input(srcPath, ffmpeg.KwArgs{"ss": "0.5"}).
+		Output(dstPath, ffmpeg.KwArgs{"vframes": 1, "vf": "thumbnail,scale=200:-1", "f": "image2", "vcodec": "mjpeg"}).
+		OverWriteOutput().
+		Run()
+	if primaryErr == nil {
+		return nil
+	}
+
+	// 失败则走管道方式到内存，再用 imaging 保存，增强兼容性
+	buf := &bytes.Buffer{}
+	pipeErr := ffmpeg.Input(srcPath, ffmpeg.KwArgs{"ss": "0.5"}).
+		Output("pipe:", ffmpeg.KwArgs{"vframes": 1, "vf": "thumbnail,scale=200:-1", "f": "image2", "vcodec": "mjpeg"}).
+		WithOutput(buf).
+		Run()
+	if pipeErr != nil {
+		return pipeErr
+	}
+
+	img, decodeErr := imaging.Decode(buf)
+	if decodeErr != nil {
+		return decodeErr
+	}
+	return imaging.Save(img, dstPath)
+}
+
 // GetFileURL 获取文件访问URL
 func (s *UploadService) GetFileURL(material *models.Material) string {
-	return fmt.Sprintf("/uploads/%s", material.FilePath)
+	// 将 Windows 路径分隔符替换为 URL 友好的正斜杠
+	clean := strings.ReplaceAll(material.FilePath, "\\", "/")
+	return fmt.Sprintf("/uploads/%s", clean)
+}
+
+// GetThumbnailURL 获取缩略图访问URL
+func (s *UploadService) GetThumbnailURL(material *models.Material) string {
+	if material.ThumbnailPath == "" {
+		return ""
+	}
+	clean := strings.ReplaceAll(material.ThumbnailPath, "\\", "/")
+	return fmt.Sprintf("/uploads/%s", clean)
 }
 
 // DeleteFile 删除文件

@@ -28,6 +28,7 @@ func SetupRoutes(r *gin.Engine) {
 		{
 			authGroup.GET("/captcha", auth.GetCaptcha)
 			authGroup.POST("/verify-captcha", auth.VerifyCaptcha)
+			authGroup.POST("/desktop-auth", auth.DesktopAuth)
 			authGroup.POST("/login", auth.Login)
 			authGroup.POST("/register", auth.Register)
 		}

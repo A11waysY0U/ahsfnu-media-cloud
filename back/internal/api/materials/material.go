@@ -4,6 +4,8 @@ import (
 	"ahsfnu-media-cloud/internal/database"
 	"ahsfnu-media-cloud/internal/models"
 	"ahsfnu-media-cloud/internal/services"
+	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -140,6 +142,45 @@ func successResponse(c *gin.Context, data interface{}) {
 	c.JSON(http.StatusOK, gin.H{"data": data})
 }
 
+// parseTagIDsFromForm 解析上传表单中的标签参数，支持以下形式：
+// - tag_ids: 逗号分隔的ID字符串，例如 "1,2,3"
+// - tags: 同上，向后兼容
+// - tag: 单个ID
+// - tag_ids_json: JSON 数组字符串，例如 "[1,2,3]"
+func parseTagIDsFromForm(c *gin.Context) []uint {
+	result := []uint{}
+
+	// 优先解析 JSON 数组
+	if jsonStr := c.PostForm("tag_ids_json"); jsonStr != "" {
+		var ids []uint
+		if err := json.Unmarshal([]byte(jsonStr), &ids); err == nil {
+			return ids
+		}
+	}
+
+	// 解析逗号分隔的多值
+	candidates := []string{c.PostForm("tag_ids"), c.PostForm("tags")}
+	for _, s := range candidates {
+		if s == "" {
+			continue
+		}
+		for _, part := range SplitAndTrim(s, ",") {
+			if id, err := strconv.ParseUint(part, 10, 32); err == nil {
+				result = append(result, uint(id))
+			}
+		}
+	}
+
+	// 解析单个ID
+	if s := c.PostForm("tag"); s != "" {
+		if id, err := strconv.ParseUint(s, 10, 32); err == nil {
+			result = append(result, uint(id))
+		}
+	}
+
+	return result
+}
+
 // UploadMaterial 上传素材
 func UploadMaterial(c *gin.Context) {
 	service := GetMaterialService()
@@ -162,6 +203,9 @@ func UploadMaterial(c *gin.Context) {
 		errorResponse(c, http.StatusBadRequest, "请选择要上传的文件")
 		return
 	}
+
+	// 解析表单中的标签ID（可选）
+	tagIDs := parseTagIDsFromForm(c)
 
 	// 使用数据库事务确保一致性
 	tx := service.db.Begin()
@@ -189,6 +233,26 @@ func UploadMaterial(c *gin.Context) {
 		return
 	}
 
+	// 若包含标签，则创建素材与标签的关联
+	if len(tagIDs) > 0 {
+		userID, _ := c.Get("user_id")
+		for _, tagID := range tagIDs {
+			mt := &models.MaterialTag{
+				MaterialID: material.ID,
+				TagID:      tagID,
+				CreatedBy:  userID.(uint),
+			}
+			if err := tx.Create(mt).Error; err != nil {
+				// 忽略重复关联
+				if !errors.Is(err, gorm.ErrDuplicatedKey) && !strings.Contains(err.Error(), "duplicate key") {
+					tx.Rollback()
+					errorResponse(c, http.StatusInternalServerError, "添加标签失败")
+					return
+				}
+			}
+		}
+	}
+
 	// 提交事务
 	if err := tx.Commit().Error; err != nil {
 		errorResponse(c, http.StatusInternalServerError, "提交事务失败")
@@ -200,6 +264,9 @@ func UploadMaterial(c *gin.Context) {
 
 	// 添加文件URL
 	material.FilePath = service.uploadService.GetFileURL(material)
+	if material.ThumbnailPath != "" {
+		material.ThumbnailPath = service.uploadService.GetThumbnailURL(material)
+	}
 
 	// 转换为安全的响应格式
 	materialResponse := material.ToMaterialResponse()
@@ -290,6 +357,9 @@ func UpdateMaterial(c *gin.Context) {
 	// 重新获取更新后的数据
 	service.db.Preload("Uploader").Preload("MaterialTags").Preload("MaterialTags.Tag").First(material, materialID)
 	material.FilePath = service.uploadService.GetFileURL(material)
+	if material.ThumbnailPath != "" {
+		material.ThumbnailPath = service.uploadService.GetThumbnailURL(material)
+	}
 
 	// 转换为安全的响应格式
 	materialResponse := material.ToMaterialResponse()
@@ -322,6 +392,9 @@ func GetMaterialDetails(c *gin.Context) {
 
 	// 添加文件URL
 	material.FilePath = service.uploadService.GetFileURL(material)
+	if material.ThumbnailPath != "" {
+		material.ThumbnailPath = service.uploadService.GetThumbnailURL(material)
+	}
 
 	// 转换为安全的响应格式
 	materialResponse := material.ToMaterialResponse()
@@ -360,6 +433,9 @@ func GetMaterial(c *gin.Context) {
 
 	// 添加文件URL
 	material.FilePath = service.uploadService.GetFileURL(&material)
+	if material.ThumbnailPath != "" {
+		material.ThumbnailPath = service.uploadService.GetThumbnailURL(&material)
+	}
 
 	// 转换为安全的响应格式
 	materialResponse := material.ToMaterialResponse()
@@ -399,6 +475,12 @@ func DeleteMaterial(c *gin.Context) {
 	// 删除文件
 	if err := service.uploadService.DeleteFile(&material); err != nil {
 		errorResponse(c, http.StatusInternalServerError, "删除文件失败")
+		return
+	}
+
+	// 先删除素材标签关联记录
+	if err := service.db.Where("material_id = ?", materialID).Delete(&models.MaterialTag{}).Error; err != nil {
+		errorResponse(c, http.StatusInternalServerError, "删除素材标签关联失败")
 		return
 	}
 
@@ -462,6 +544,9 @@ func SearchMaterials(c *gin.Context) {
 	for i := range materials {
 		// 添加文件URL
 		materials[i].FilePath = service.uploadService.GetFileURL(&materials[i])
+		if materials[i].ThumbnailPath != "" {
+			materials[i].ThumbnailPath = service.uploadService.GetThumbnailURL(&materials[i])
+		}
 		// 转换为安全的响应格式
 		materialResponse := materials[i].ToMaterialResponse()
 		materialResponses = append(materialResponses, *materialResponse)
